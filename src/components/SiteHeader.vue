@@ -8,7 +8,7 @@
       <nav class="nav">
         <router-link class="nav-link" to="/">홈</router-link>
         <router-link class="nav-link" to="/products">상품</router-link>
-        <router-link class="nav-link" to="/community">커뮤니티</router-link>
+        <!-- <router-link class="nav-link" to="/community">커뮤니티</router-link> -->
       </nav>
       <div class="actions">
         <button class="icon-btn cart-btn" @click="goToCart">
