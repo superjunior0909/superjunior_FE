@@ -99,7 +99,8 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getProductById, sellerNotices, sellerQna } from '@/data/products'
+import { sellerNotices, sellerQna } from '@/data/products'
+import api from '@/api/axios'
 
 // eslint-disable-next-line no-undef
 const props = defineProps({
@@ -113,20 +114,38 @@ const router = useRouter()
 const product = ref(null)
 const selectedImage = ref(null)
 
-const loadProduct = () => {
-  // 먼저 기본 샘플 상품에서 찾기
-  product.value = getProductById(props.id)
-  
-  // 없으면 localStorage의 등록된 상품에서 찾기
-  if (!product.value) {
-    const allProducts = JSON.parse(localStorage.getItem('all_products') || '[]')
-    product.value = allProducts.find(p => p.id === Number(props.id))
-  }
-  
-  // 여전히 없으면 seller_products에서 찾기
-  if (!product.value) {
-    const sellerProducts = JSON.parse(localStorage.getItem('seller_products') || '[]')
-    product.value = sellerProducts.find(p => p.id === Number(props.id))
+const loadProduct = async () => {
+  try {
+    const response = await api.get(`/api/products/${props.id}`)
+    console.log('상품 조회 성공:', response.data)
+
+    // 백엔드 응답 데이터 구조에 맞게 매핑
+    const productData = response.data.data || response.data
+
+    product.value = {
+      id: productData.id,
+      title: productData.name,
+      subtitle: productData.description,
+      category: productData.category || '전자제품',
+      image: productData.imageUrl || productData.image,
+      images: productData.images || [productData.imageUrl || productData.image],
+      currentPrice: productData.price,
+      originalPrice: productData.originalPrice || productData.price,
+      discountRate: productData.discountRate || 0,
+      rating: productData.rating || 4.5,
+      reviewCount: productData.reviewCount || 0,
+      currentCount: productData.currentCount || 0,
+      targetCount: productData.targetCount || 100,
+      timeLeft: productData.timeLeft || '종료일 미정',
+      specs: productData.specs || [],
+      description: productData.description,
+      detailedDescription: productData.detailedDescription,
+      shipping: productData.shipping || '무료배송',
+      seller: productData.seller
+    }
+  } catch (error) {
+    console.error('상품 조회 실패:', error)
+    product.value = null
   }
 }
 

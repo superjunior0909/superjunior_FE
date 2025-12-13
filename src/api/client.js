@@ -1,8 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
-  timeout: 10000
+  baseURL: '/api',  // 프록시를 통해 요청
+  timeout: 10000,
+  withCredentials: true
 })
 
 api.interceptors.request.use((config) => {

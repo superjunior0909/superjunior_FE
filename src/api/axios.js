@@ -2,19 +2,19 @@
 import axios from "axios";
 import router from "@/router";
 
-const BASE_URL = "/api";
+const BASE_URL = "/api";  // 프록시를 통해 요청
 
 // 단일 Axios 인스턴스
 export const api = axios.create({
     baseURL: BASE_URL,
     timeout: 10000,
-    withCredentials: true, // 🔥 Cookie 자동 송수신 (이게 핵심!)
+    withCredentials: true, // 🔥 Cookie 자동 송수신 - Gateway가 accessToken 쿠키를 읽고 헤더 추가
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-// 응답 인터셉터: 401 에러 시 로그인 페이지로 리다이렉트만
+// 응답 인터셉터: 401 에러 시 로그인 페이지로 리다이렉트
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -37,6 +37,7 @@ api.interceptors.response.use(
 // 상품 관련 API
 export const productApi = {
     createProduct: (data) => api.post("/products", data),
+    updateProduct: (productId, data) => api.patch(`/products/${productId}`, data),
     deleteProduct: (productId) => api.delete(`/products/${productId}`),
 };
 
