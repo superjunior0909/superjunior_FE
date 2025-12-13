@@ -62,13 +62,11 @@
       <div v-else class="group-purchase-list-container">
         <div class="gp-list-header">
           <div class="gp-col gp-col-status">상태</div>
-          <div class="gp-col gp-col-title">제목</div>
-          <div class="gp-col gp-col-product">상품명</div>
-          <div class="gp-col gp-col-seller">판매자</div>
+          <div class="gp-col gp-col-title">공동구매명</div>
           <div class="gp-col gp-col-price">가격</div>
           <div class="gp-col gp-col-progress">진행률</div>
           <div class="gp-col gp-col-time">남은 시간</div>
-          <div class="gp-col gp-col-action">주문내역</div>
+          <div class="gp-col gp-col-action">관리</div>
         </div>
         <article
           v-for="gp in filteredGroupPurchases"
@@ -87,12 +85,6 @@
                 <h3 class="title">{{ gp.title }}</h3>
                 <span class="category">{{ gp.category }}</span>
               </div>
-            </div>
-            <div class="gp-col gp-col-product">
-              <span class="product-name">{{ gp.productName }}</span>
-            </div>
-            <div class="gp-col gp-col-seller">
-              <span class="seller-name">{{ gp.seller }}</span>
             </div>
             <div class="gp-col gp-col-price">
               <div class="price-wrapper">
@@ -121,13 +113,40 @@
               </span>
             </div>
             <div class="gp-col gp-col-action">
-              <button 
-                v-if="isSeller && isOwner(gp)" 
-                class="expand-btn"
-                @click.stop="handleCardClick(gp.id, gp)"
-              >
-                <span>{{ expandedId === gp.id ? '▼' : '▶' }}</span>
-              </button>
+              <!-- 내 공동구매 목록이거나 소유자인 경우 버튼 표시 -->
+              <div v-if="!route.query.sellerId || isOwner(gp)" class="action-buttons">
+                <!-- SCHEDULED (예정됨): 수정 + 삭제 -->
+                <template v-if="gp.status === 'SCHEDULED'">
+                  <button
+                    class="btn btn-sm btn-outline"
+                    @click.stop="handleEdit(gp.id)"
+                  >
+                    수정
+                  </button>
+                  <button
+                    class="btn btn-sm btn-danger-outline"
+                    @click.stop="handleDelete(gp.id)"
+                  >
+                    삭제
+                  </button>
+                </template>
+                <!-- OPEN (진행중): 수정만 -->
+                <button
+                  v-else-if="gp.status === 'OPEN'"
+                  class="btn btn-sm btn-outline"
+                  @click.stop="handleEdit(gp.id)"
+                >
+                  수정
+                </button>
+                <!-- 기타 상태: 드롭다운 -->
+                <button
+                  v-else
+                  class="expand-btn"
+                  @click.stop="handleCardClick(gp.id, gp)"
+                >
+                  <span>{{ expandedId === gp.id ? '▼' : '▶' }}</span>
+                </button>
+              </div>
               <span v-else class="no-action">-</span>
             </div>
           </div>
@@ -359,7 +378,18 @@ const getTimeRemaining = (endDate) => {
 }
 
 const isOwner = (gp) => {
-  return gp.sellerId === currentSellerId.value
+  const memberId = localStorage.getItem('member_id')
+  const userEmail = localStorage.getItem('user_email')
+
+  console.log('isOwner 체크:', {
+    'gp.sellerId': gp.sellerId,
+    'currentSellerId': currentSellerId.value,
+    'member_id': memberId,
+    'user_email': userEmail
+  })
+
+  // sellerId가 member_id, user_email 중 하나와 일치하면 소유자로 판단
+  return gp.sellerId === memberId || gp.sellerId === userEmail || gp.sellerId === currentSellerId.value
 }
 
 const handleCardClick = (id, gp) => {
@@ -378,6 +408,27 @@ const handleCardClick = (id, gp) => {
 
 const goToCreate = () => {
   router.push({ name: 'group-purchase-create' })
+}
+
+const handleEdit = (id) => {
+  router.push({ name: 'group-purchase-edit', params: { id } })
+}
+
+const handleDelete = async (id) => {
+  if (!confirm('정말 이 공동구매를 삭제하시겠습니까?')) {
+    return
+  }
+
+  try {
+    await groupPurchaseApi.deleteGroupPurchase(id)
+    alert('공동구매가 삭제되었습니다.')
+    // 목록 새로고침
+    await loadGroupPurchases()
+  } catch (error) {
+    console.error('공동구매 삭제 실패:', error)
+    const errorMessage = error.response?.data?.message || '공동구매 삭제에 실패했습니다.'
+    alert(errorMessage)
+  }
 }
 
 const getOrdersForGroupPurchase = (groupId) => {
@@ -612,7 +663,7 @@ watch(() => route.query.sellerId, () => {
 
 .gp-list-header {
   display: grid;
-  grid-template-columns: 0.8fr 2fr 1.5fr 1fr 1.2fr 1.5fr 1.2fr 0.8fr;
+  grid-template-columns: 0.8fr 2.5fr 1.2fr 1.5fr 1.2fr 1fr;
   gap: 16px;
   padding: 14px 20px;
   background: #0f0f0f;
@@ -641,7 +692,7 @@ watch(() => route.query.sellerId, () => {
 
 .gp-list-row {
   display: grid;
-  grid-template-columns: 0.8fr 2fr 1.5fr 1fr 1.2fr 1.5fr 1.2fr 0.8fr;
+  grid-template-columns: 0.8fr 2.5fr 1.2fr 1.5fr 1.2fr 1fr;
   gap: 16px;
   padding: 16px 20px;
   cursor: pointer;
@@ -828,24 +879,23 @@ watch(() => route.query.sellerId, () => {
   font-size: 12px;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1024px) {
   .gp-list-header,
   .gp-list-row {
-    grid-template-columns: 0.8fr 2fr 1.2fr 1fr 1.2fr 1.2fr 0.8fr;
+    grid-template-columns: 0.8fr 2fr 1.2fr 1.2fr 1fr;
   }
-  
+
   .gp-col-time {
     display: none;
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
   .gp-list-header,
   .gp-list-row {
-    grid-template-columns: 0.8fr 2fr 1fr 1fr 1fr 0.8fr;
+    grid-template-columns: 1fr 2fr 1fr 1fr;
   }
-  
-  .gp-col-product,
+
   .gp-col-progress {
     display: none;
   }
@@ -886,6 +936,50 @@ watch(() => route.query.sellerId, () => {
 .order-count {
   font-size: 14px;
   color: #999;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  border: 1px solid #ff4757;
+  color: #ff4757;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger-outline:hover {
+  background: #ff4757;
+  color: white;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .no-orders {
