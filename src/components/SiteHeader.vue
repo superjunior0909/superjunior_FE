@@ -23,7 +23,6 @@
         <router-link v-if="!isLoggedIn" class="btn btn-primary" to="/register">회원가입</router-link>
         <div v-if="isLoggedIn" class="user-menu">
           <button class="btn btn-outline" @click="goToMyPage">마이페이지</button>
-          <button class="btn btn-primary" @click="goToSellerPage">판매자 페이지</button>
           <button class="btn btn-outline" @click="handleLogout">로그아웃</button>
         </div>
       </div>
@@ -69,14 +68,14 @@ const goToMyPage = () => {
   router.push('/me/profile')
 }
 
-const goToSellerPage = () => {
-  router.push('/seller')
-}
-
 const handleStorageChange = (e) => {
   if (e.key === 'access_token') {
     checkAuthStatus()
   }
+}
+
+const handleAuthChanged = () => {
+  checkAuthStatus()
 }
 
 const handleLogout = () => {
@@ -101,6 +100,9 @@ onMounted(() => {
   // 로그인 상태 변경 감지 (다른 탭에서의 변경)
   window.addEventListener('storage', handleStorageChange)
   
+  // 커스텀 이벤트로 로그인 상태 변경 감지 (같은 탭에서의 변경)
+  window.addEventListener('auth-changed', handleAuthChanged)
+  
   // 같은 탭에서의 변경 감지를 위한 주기적 체크
   authCheckInterval = setInterval(() => {
     const token = localStorage.getItem('access_token')
@@ -112,6 +114,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('auth-changed', handleAuthChanged)
   if (authCheckInterval) {
     clearInterval(authCheckInterval)
   }

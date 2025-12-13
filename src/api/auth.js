@@ -37,5 +37,32 @@ export const authAPI = {
     logout: async() => {
         const response = await api.post(`/auth/logout`)
         return response.data;
+    },
+    // 프로필 조회
+    getProfile: async() => {
+        const response = await api.get(`/members/profile`)
+        return response.data;
+    },
+    // 주소 목록 조회
+    getAddresses: async(page = 0, size = 10) => {
+        const response = await api.get(`/members/address`, {
+            params: { page, size }
+        })
+        return response.data;
+    },
+    // 주소 수정
+    updateAddress: async(addressId, addressData) => {
+        const response = await api.put(`/members/address/${addressId}`, addressData)
+        return response.data;
+    },
+    // 판매자 신청
+    sellerRegister: async(sellerData) => {
+        const response = await api.post(`/members/seller`, {
+            accountNumber: sellerData.accountNumber,
+            bankCode: sellerData.bankCode,
+            accountHolder: sellerData.accountHolder,
+            businessRegistrationNumber: sellerData.businessRegistrationNumber
+        })
+        return response.data;
     }
 }

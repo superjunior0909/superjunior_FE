@@ -14,6 +14,40 @@ export const api = axios.create({
     },
 });
 
+// 요청 인터셉터: 토큰과 memberId를 헤더에 추가
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('access_token');
+        const memberId = localStorage.getItem('member_id');
+        
+        // 쿠키 확인 (디버깅용)
+        console.log('요청 URL:', config.url);
+        console.log('현재 쿠키:', document.cookie);
+        console.log('localStorage token:', token);
+        console.log('localStorage memberId:', memberId);
+        
+        // 토큰이 있고 'authenticated'가 아닌 실제 토큰인 경우에만 헤더에 추가
+        if (token && token !== 'authenticated') {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        // memberId가 있으면 헤더에 추가 (백엔드가 @RequestHeader(value = HeaderName.ID)로 받는 경우)
+        if (memberId) {
+            config.headers['X-Member-Id'] = memberId;
+        }
+        
+        // 쿠키가 없으면 경고
+        if (!document.cookie || !document.cookie.includes('accessToken')) {
+            console.warn('⚠️ 쿠키에 accessToken이 없습니다! 로그인을 다시 해주세요.');
+        }
+        
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
 // 응답 인터셉터: 401 에러 시 로그인 페이지로 리다이렉트만
 api.interceptors.response.use(
     (response) => response,
@@ -23,9 +57,15 @@ api.interceptors.response.use(
             const currentPath = router.currentRoute.value.fullPath;
             
             // 이미 로그인 페이지가 아닌 경우에만 리다이렉트
-            if (currentPath !== "/auth/login") {
+            if (currentPath !== "/login" && currentPath !== "/register") {
+                // 인증 정보 초기화
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_role');
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('member_id');
+                
                 router.push({
-                    path: "/auth/login",
+                    path: "/login",
                     query: { redirect: currentPath },
                 });
             }

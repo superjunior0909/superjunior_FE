@@ -1,68 +1,28 @@
 <template>
   <main class="page">
     <div class="container">
-      <h1>{{ isSeller ? '판매자 대시보드' : '마이페이지' }}</h1>
-      
-      <!-- 판매자 정산 결과 -->
-      <div v-if="isSeller" class="seller-section">
-        <div class="grid">
-          <div class="panel">
-            <h3>정산 현황</h3>
-            <div class="settlement-summary">
-              <div class="stat-card">
-                <span class="stat-label">이번 달 매출</span>
-                <span class="stat-value">₩{{ settlement.monthlyRevenue.toLocaleString() }}</span>
-              </div>
-              <div class="stat-card">
-                <span class="stat-label">정산 예정 금액</span>
-                <span class="stat-value highlight">₩{{ settlement.pendingAmount.toLocaleString() }}</span>
-              </div>
-              <div class="stat-card">
-                <span class="stat-label">누적 정산 금액</span>
-                <span class="stat-value">₩{{ settlement.totalSettled.toLocaleString() }}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="panel">
-            <h3>정산 내역</h3>
-            <div class="settlement-list">
-              <div v-for="item in settlement.history" :key="item.id" class="settlement-item">
-                <div class="settlement-info">
-                  <span class="settlement-date">{{ item.date }}</span>
-                  <span class="settlement-amount">₩{{ item.amount.toLocaleString() }}</span>
-                </div>
-                <span class="settlement-status" :class="item.status">{{ item.statusText }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="panel">
-          <h3>판매 통계</h3>
-          <div class="stats-grid">
-            <div class="stat-box">
-              <span class="stat-label">총 판매 건수</span>
-              <span class="stat-number">{{ sellerStats.totalSales }}</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">진행 중인 공동구매</span>
-              <span class="stat-number">{{ sellerStats.activeProducts }}</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">평균 평점</span>
-              <span class="stat-number">⭐ {{ sellerStats.averageRating }}</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">고객 만족도</span>
-              <span class="stat-number">{{ sellerStats.satisfaction }}%</span>
-            </div>
-          </div>
+      <div class="page-header">
+        <h1>마이페이지</h1>
+        <div class="header-actions">
+          <button 
+            v-if="isSeller" 
+            class="btn btn-primary" 
+            @click="goToSellerPage"
+          >
+            판매자 대시보드
+          </button>
+          <button 
+            v-else 
+            class="btn btn-primary" 
+            @click="goToSellerApplication"
+          >
+            판매자 신청
+          </button>
         </div>
       </div>
       
       <!-- 일반 사용자 정보 -->
-      <div v-else class="user-section">
+      <div class="user-section">
         <div class="grid">
           <div class="panel">
             <h3>기본 정보</h3>
@@ -160,15 +120,6 @@
           </div>
         </div>
         
-        <div class="panel">
-          <h3>판매자 신청</h3>
-          <p style="color: #999; margin-bottom: 16px;">
-            공동 구매에서 판매자로 활동하고 싶으신가요? 판매자 신청을 통해 상품을 등록하고 판매할 수 있습니다.
-          </p>
-          <router-link to="/seller/application" class="btn btn-primary">
-            판매자 신청하기
-          </router-link>
-        </div>
       </div>
     </div>
   </main>
@@ -176,6 +127,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { authAPI } from '@/api/auth'
+
+const router = useRouter()
 
 const profile = ref({
   nickname: '에요!',
@@ -183,24 +138,6 @@ const profile = ref({
   detailAddress: ''
 })
 
-const settlement = ref({
-  monthlyRevenue: 12500000,
-  pendingAmount: 8500000,
-  totalSettled: 45000000,
-  history: [
-    { id: 1, date: '2025-12-01', amount: 5000000, status: 'completed', statusText: '정산 완료' },
-    { id: 2, date: '2025-11-15', amount: 3200000, status: 'completed', statusText: '정산 완료' },
-    { id: 3, date: '2025-11-01', amount: 7500000, status: 'completed', statusText: '정산 완료' },
-    { id: 4, date: '2025-12-15', amount: 8500000, status: 'pending', statusText: '정산 예정' }
-  ]
-})
-
-const sellerStats = ref({
-  totalSales: 3245,
-  activeProducts: 8,
-  averageRating: 4.9,
-  satisfaction: 98
-})
 
 const userInfo = ref({
   name: '슈퍼주니어',
@@ -272,9 +209,18 @@ const orderHistory = ref([
   }
 ])
 
+const userRole = ref(null)
+
 const isSeller = computed(() => {
-  const role = localStorage.getItem('user_role')
-  return role === 'seller'
+  // localStorage와 API에서 가져온 role 모두 확인
+  const localRole = localStorage.getItem('user_role')
+  const role = userRole.value || localRole
+  
+  // 대소문자 구분 없이 비교 (SELLER, seller, ROLE_SELLER 등 모두 처리)
+  if (!role) return false
+  
+  const roleUpper = role.toUpperCase()
+  return roleUpper === 'SELLER' || roleUpper === 'ROLE_SELLER' || roleUpper.includes('SELLER')
 })
 
 const save = () => {
@@ -286,6 +232,14 @@ const save = () => {
   }
   localStorage.setItem('user_profile', JSON.stringify(profileData))
   alert('저장되었습니다')
+}
+
+const goToSellerPage = () => {
+  router.push('/seller')
+}
+
+const goToSellerApplication = () => {
+  router.push('/seller/application')
 }
 
 const searchAddress = () => {
@@ -310,7 +264,7 @@ const viewOrderDetail = (orderId) => {
 //   }
 // }
 
-onMounted(() => {
+onMounted(async () => {
   // 저장된 사용자 정보 불러오기
   const savedUserData = localStorage.getItem('user_data')
   if (savedUserData) {
@@ -331,6 +285,38 @@ onMounted(() => {
   if (savedEmail) {
     userInfo.value.email = savedEmail
   }
+  
+  // 프로필 API에서 role 정보 가져오기
+  try {
+    const profileResponse = await authAPI.getProfile()
+    console.log('프로필 정보:', profileResponse)
+    
+    if (profileResponse.data) {
+      // role 정보 업데이트
+      if (profileResponse.data.role) {
+        userRole.value = profileResponse.data.role
+        localStorage.setItem('user_role', profileResponse.data.role)
+      }
+      
+      // 사용자 정보 업데이트
+      if (profileResponse.data.email) {
+        userInfo.value.email = profileResponse.data.email
+        localStorage.setItem('user_email', profileResponse.data.email)
+      }
+      if (profileResponse.data.name) {
+        userInfo.value.name = profileResponse.data.name
+      }
+      if (profileResponse.data.phoneNumber) {
+        userInfo.value.phone = profileResponse.data.phoneNumber
+      }
+      if (profileResponse.data.memberId) {
+        localStorage.setItem('member_id', profileResponse.data.memberId)
+      }
+    }
+  } catch (error) {
+    console.error('프로필 조회 실패:', error)
+    // 프로필 조회 실패해도 localStorage의 role 사용
+  }
 })
 </script>
 
@@ -348,11 +334,23 @@ onMounted(() => {
   padding: 0 20px;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
 .container h1 {
   font-size: 32px;
   font-weight: 700;
-  margin-bottom: 24px;
+  margin: 0;
   color: #ffffff;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .grid {
@@ -794,6 +792,22 @@ textarea:focus {
 
   .user-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
   }
 }
 

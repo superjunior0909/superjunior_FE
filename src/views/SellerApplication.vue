@@ -1,88 +1,49 @@
 <template>
-  <main class="application-page">
-    <div class="container">
-      <div class="application-card">
-        <div class="application-header">
+  <div class="modal-overlay" @click.self="closeModal">
+    <div class="application-card">
+      <div class="application-header">
+        <div>
           <h1>판매자 신청</h1>
-          <p>GameMate에서 판매자로 활동하시려면 아래 정보를 입력해주세요</p>
+          <p>0982 공구팔이에서 판매자로 활동하시려면 아래 정보를 입력해주세요</p>
         </div>
+        <button class="close-btn" @click="closeModal">✕</button>
+      </div>
         <form @submit.prevent="handleSubmit" class="application-form">
           <div class="form-section">
-            <h3>기본 정보</h3>
+            <h3>사업자 정보</h3>
             <div class="form-group">
-              <label for="storeName">상점명 *</label>
+              <label for="businessRegistrationNumber">사업자 등록번호 *</label>
               <input
-                id="storeName"
-                v-model="form.storeName"
-                type="text"
-                placeholder="상점명을 입력하세요"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="businessNumber">사업자 등록번호 *</label>
-              <input
-                id="businessNumber"
-                v-model="form.businessNumber"
+                id="businessRegistrationNumber"
+                v-model="form.businessRegistrationNumber"
                 type="text"
                 placeholder="000-00-00000"
                 required
                 maxlength="12"
+                @input="formatBusinessNumber"
               />
-            </div>
-            <div class="form-group">
-              <label for="businessType">업종 *</label>
-              <select id="businessType" v-model="form.businessType" required>
-                <option value="">업종을 선택하세요</option>
-                <option value="전자제품">전자제품</option>
-                <option value="패션">패션</option>
-                <option value="식품">식품</option>
-                <option value="뷰티">뷰티</option>
-                <option value="홈/리빙">홈/리빙</option>
-                <option value="기타">기타</option>
-              </select>
+              <p v-if="businessNumberError" class="form-error">{{ businessNumberError }}</p>
+              <p class="form-hint">XXX-XX-XXXXX 형식으로 입력해주세요</p>
             </div>
           </div>
 
           <div class="form-section">
-            <h3>연락처 정보</h3>
-            <div class="form-group">
-              <label for="contactPhone">연락처 *</label>
-              <input
-                id="contactPhone"
-                v-model="form.contactPhone"
-                type="tel"
-                placeholder="010-0000-0000"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="contactEmail">이메일 *</label>
-              <input
-                id="contactEmail"
-                v-model="form.contactEmail"
-                type="email"
-                placeholder="이메일을 입력하세요"
-                required
-              />
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h3>은행 정보</h3>
+            <h3>계좌 정보</h3>
             <div class="form-row">
               <div class="form-group">
-                <label for="bankName">은행명 *</label>
-                <select id="bankName" v-model="form.bankName" required>
+                <label for="bankCode">은행 *</label>
+                <select
+                  id="bankCode"
+                  v-model="form.bankCode"
+                  required
+                  @change="validateBankCode"
+                >
                   <option value="">은행을 선택하세요</option>
-                  <option value="KB국민은행">KB국민은행</option>
-                  <option value="신한은행">신한은행</option>
-                  <option value="우리은행">우리은행</option>
-                  <option value="하나은행">하나은행</option>
-                  <option value="NH농협은행">NH농협은행</option>
-                  <option value="카카오뱅크">카카오뱅크</option>
-                  <option value="토스뱅크">토스뱅크</option>
+                  <option v-for="bank in bankList" :key="bank.code" :value="bank.code">
+                    {{ bank.name }}
+                  </option>
                 </select>
+                <p v-if="bankCodeError" class="form-error">{{ bankCodeError }}</p>
               </div>
               <div class="form-group">
                 <label for="accountNumber">계좌번호 *</label>
@@ -92,7 +53,11 @@
                   type="text"
                   placeholder="계좌번호를 입력하세요"
                   required
+                  maxlength="20"
+                  @input="validateAccountNumber"
                 />
+                <p v-if="accountNumberError" class="form-error">{{ accountNumberError }}</p>
+                <p class="form-hint">숫자만 입력 가능합니다 (1-20자)</p>
               </div>
             </div>
             <div class="form-group">
@@ -103,39 +68,11 @@
                 type="text"
                 placeholder="예금주명을 입력하세요"
                 required
+                maxlength="50"
+                @input="validateAccountHolder"
               />
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h3>상점 소개</h3>
-            <div class="form-group">
-              <label for="description">상점 설명 *</label>
-              <textarea
-                id="description"
-                v-model="form.description"
-                rows="5"
-                placeholder="상점에 대한 소개를 작성해주세요"
-                required
-              ></textarea>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h3>약관 동의</h3>
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form.agreeTerms" required />
-                <span>판매자 이용약관에 동의합니다 *</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form.agreePrivacy" required />
-                <span>개인정보 처리방침에 동의합니다 *</span>
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form.agreeSettlement" required />
-                <span>정산 약관에 동의합니다 *</span>
-              </label>
+              <p v-if="accountHolderError" class="form-error">{{ accountHolderError }}</p>
+              <p class="form-hint">한글과 영어만 입력 가능합니다 (1-50자)</p>
             </div>
           </div>
 
@@ -145,73 +82,204 @@
         </form>
       </div>
     </div>
-  </main>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { authAPI } from '@/api/auth'
 
 const router = useRouter()
 
+// 은행 코드 리스트
+const bankList = [
+  { code: '002', name: 'KDB산업은행' },
+  { code: '003', name: 'IBK기업은행' },
+  { code: '004', name: 'KB국민은행' },
+  { code: '005', name: 'KEB하나은행' },
+  { code: '007', name: '수협은행' },
+  { code: '011', name: 'NH농협은행' },
+  { code: '020', name: '우리은행' },
+  { code: '023', name: 'SC은행' },
+  { code: '027', name: '씨티은행' },
+  { code: '031', name: '대구은행' },
+  { code: '032', name: '부산은행' },
+  { code: '034', name: '광주은행' },
+  { code: '035', name: '제주은행' },
+  { code: '037', name: '전북은행' },
+  { code: '039', name: '경남은행' },
+  { code: '045', name: 'MG새마을금고' },
+  { code: '048', name: '신협' },
+  { code: '050', name: '저축은행' },
+  { code: '064', name: '산림조합' },
+  { code: '071', name: '우체국' },
+  { code: '081', name: '하나은행' },
+  { code: '088', name: '신한은행' },
+  { code: '089', name: '케이뱅크' },
+  { code: '090', name: '카카오뱅크' },
+  { code: '092', name: '토스뱅크' },
+  { code: '103', name: 'SBI저축은행' },
+  { code: '218', name: 'KB증권' },
+  { code: '230', name: '미래에셋증권' },
+  { code: '238', name: '미래에셋증권' },
+  { code: '240', name: '삼성증권' },
+  { code: '243', name: '한국투자증권' },
+  { code: '247', name: 'NH투자증권' },
+  { code: '261', name: '교보증권' },
+  { code: '262', name: '하이투자증권' },
+  { code: '263', name: '현대차투자증권' },
+  { code: '264', name: '키움증권' },
+  { code: '265', name: '이베스트증권' },
+  { code: '266', name: 'SK증권' },
+  { code: '267', name: '대신증권' },
+  { code: '269', name: '한화투자증권' },
+  { code: '270', name: '하나증권' },
+  { code: '271', name: '토스증권' },
+  { code: '278', name: '신한투자증권' },
+  { code: '279', name: 'DB금융투자' },
+  { code: '280', name: '유진투자' },
+  { code: '287', name: '메리츠증권' },
+  { code: '888', name: '토스머니' },
+  { code: '889', name: '토스포인트' }
+]
+
 const form = ref({
-  storeName: '',
-  businessNumber: '',
-  businessType: '',
-  contactPhone: '',
-  contactEmail: '',
-  bankName: '',
   accountNumber: '',
+  bankCode: '',
   accountHolder: '',
-  description: '',
-  agreeTerms: false,
-  agreePrivacy: false,
-  agreeSettlement: false
+  businessRegistrationNumber: ''
 })
 
 const loading = ref(false)
+const accountNumberError = ref('')
+const bankCodeError = ref('')
+const accountHolderError = ref('')
+const businessNumberError = ref('')
+
+// 계좌번호 유효성 검사 (숫자만, 1-20자)
+const validateAccountNumber = () => {
+  const value = form.value.accountNumber
+  if (!value) {
+    accountNumberError.value = ''
+    return
+  }
+  if (!/^[0-9]+$/.test(value)) {
+    accountNumberError.value = '계좌번호는 숫자만 입력 가능합니다.'
+  } else if (value.length < 1 || value.length > 20) {
+    accountNumberError.value = '계좌번호는 1-20자로 입력해주세요.'
+  } else {
+    accountNumberError.value = ''
+  }
+}
+
+// 은행 코드 유효성 검사
+const validateBankCode = () => {
+  const value = form.value.bankCode
+  if (!value) {
+    bankCodeError.value = '은행을 선택해주세요.'
+  } else {
+    bankCodeError.value = ''
+  }
+}
+
+// 예금주 유효성 검사 (한글/영어만, 1-50자)
+const validateAccountHolder = () => {
+  const value = form.value.accountHolder
+  if (!value) {
+    accountHolderError.value = ''
+    return
+  }
+  if (!/^[가-힣a-zA-Z\s]+$/.test(value)) {
+    accountHolderError.value = '예금주는 한글과 영어만 입력 가능합니다.'
+  } else if (value.length < 1 || value.length > 50) {
+    accountHolderError.value = '예금주는 1-50자로 입력해주세요.'
+  } else {
+    accountHolderError.value = ''
+  }
+}
+
+// 사업자 등록번호 포맷팅 (XXX-XX-XXXXX)
+const formatBusinessNumber = () => {
+  let value = form.value.businessRegistrationNumber.replace(/[^0-9]/g, '')
+  
+  if (value.length > 10) {
+    value = value.substring(0, 10)
+  }
+  
+  if (value.length > 5) {
+    value = value.substring(0, 3) + '-' + value.substring(3, 5) + '-' + value.substring(5)
+  } else if (value.length > 3) {
+    value = value.substring(0, 3) + '-' + value.substring(3)
+  }
+  
+  form.value.businessRegistrationNumber = value
+  
+  // 유효성 검사
+  if (!value) {
+    businessNumberError.value = ''
+    return
+  }
+  if (!/^[0-9]{3}-[0-9]{2}-[0-9]{5}$/.test(value)) {
+    businessNumberError.value = '사업자 등록번호는 XXX-XX-XXXXX 형식으로 입력해야 합니다.'
+  } else {
+    businessNumberError.value = ''
+  }
+}
 
 const isFormValid = computed(() => {
   return (
-    form.value.storeName &&
-    form.value.businessNumber &&
-    form.value.businessType &&
-    form.value.contactPhone &&
-    form.value.contactEmail &&
-    form.value.bankName &&
     form.value.accountNumber &&
+    form.value.bankCode &&
     form.value.accountHolder &&
-    form.value.description &&
-    form.value.agreeTerms &&
-    form.value.agreePrivacy &&
-    form.value.agreeSettlement
+    form.value.businessRegistrationNumber &&
+    !accountNumberError.value &&
+    !bankCodeError.value &&
+    !accountHolderError.value &&
+    !businessNumberError.value &&
+    /^[0-9]+$/.test(form.value.accountNumber) &&
+    form.value.accountNumber.length >= 1 &&
+    form.value.accountNumber.length <= 20 &&
+    form.value.bankCode.length > 0 &&
+    /^[가-힣a-zA-Z\s]+$/.test(form.value.accountHolder) &&
+    form.value.accountHolder.length >= 1 &&
+    form.value.accountHolder.length <= 50 &&
+    /^[0-9]{3}-[0-9]{2}-[0-9]{5}$/.test(form.value.businessRegistrationNumber)
   )
 })
 
+const closeModal = () => {
+  router.push('/me/profile')
+}
+
 const handleSubmit = async () => {
   if (!isFormValid.value) {
-    alert('모든 필수 항목을 입력해주세요.')
+    alert('모든 필수 항목을 올바르게 입력해주세요.')
     return
   }
 
   loading.value = true
   try {
-    // TODO: 실제 API 호출로 교체
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    const response = await authAPI.sellerRegister({
+      accountNumber: form.value.accountNumber,
+      bankCode: form.value.bankCode,
+      accountHolder: form.value.accountHolder,
+      businessRegistrationNumber: form.value.businessRegistrationNumber
+    })
     
-    // 판매자 신청 정보 저장
-    const applicationData = {
-      ...form.value,
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    }
-    localStorage.setItem('seller_application', JSON.stringify(applicationData))
+    alert(response.message || '판매자 신청이 완료되었습니다. 검토 후 연락드리겠습니다.')
     
-    alert('판매자 신청이 완료되었습니다. 검토 후 연락드리겠습니다.')
+    // 사용자 역할 업데이트 (백엔드에서 처리할 수도 있음)
+    // localStorage.setItem('user_role', 'seller')
+    
     router.push('/me/profile')
   } catch (error) {
-    alert('신청에 실패했습니다. 다시 시도해주세요.')
     console.error('Application error:', error)
+    if (error.response) {
+      const message = error.response.data?.message || error.response.data?.error
+      alert(message || '신청에 실패했습니다. 다시 시도해주세요.')
+    } else {
+      alert('신청에 실패했습니다. 다시 시도해주세요.')
+    }
   } finally {
     loading.value = false
   }
@@ -228,18 +296,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.application-page {
-  background: #0a0a0a;
-  min-height: 100vh;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
   padding: 20px;
-}
-
-.container {
-  width: 100%;
-  max-width: 800px;
 }
 
 .application-card {
@@ -250,11 +318,48 @@ onMounted(() => {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   max-height: 90vh;
   overflow-y: auto;
+  width: 100%;
+  max-width: 800px;
+  position: relative;
 }
 
 .application-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.application-header > div {
+  flex: 1;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.close-btn:hover {
+  background: #2a2a2a;
+}
+
+.application-header h1 {
+  text-align: left;
 }
 
 .application-header h1 {
@@ -267,6 +372,8 @@ onMounted(() => {
 .application-header p {
   color: #a0a0a0;
   font-size: 15px;
+  margin: 0;
+  text-align: left;
 }
 
 .application-form {
@@ -356,6 +463,18 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.form-error {
+  font-size: 12px;
+  color: #ff6b6b;
+  margin-top: 4px;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
 .btn {
   width: 100%;
   padding: 14px;
@@ -392,8 +511,20 @@ onMounted(() => {
     padding: 32px 24px;
   }
 
+  .application-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .application-header h1 {
     font-size: 28px;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    margin-left: 0;
   }
 }
 </style>

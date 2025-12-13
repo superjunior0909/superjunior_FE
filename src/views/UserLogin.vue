@@ -91,16 +91,49 @@ const handleLogin = async () => {
     
     console.log('로그인 성공:', response.data)
     
-    // Cookie 기반이라면 이 부분 전부 불필요
-    // 백엔드가 자동으로 Cookie에 토큰 설정
+    // 쿠키 확인 (디버깅용)
+    console.log('현재 쿠키:', document.cookie)
+    console.log('응답 헤더:', response.headers)
     
-    // 사용자 정보만 필요하면 저장 (선택사항)
+    // set-cookie 헤더 확인 (HttpOnly 쿠키는 document.cookie에서 보이지 않음)
+    const setCookieHeader = response.headers['set-cookie']
+    if (setCookieHeader) {
+      console.log('✅ Set-Cookie 헤더:', setCookieHeader)
+    } else {
+      console.warn('⚠️ Set-Cookie 헤더가 없습니다!')
+    }
+    
+    // AxiosHeaders의 getSetCookie 메서드 사용
+    try {
+      const cookies = response.headers.getSetCookie?.() || response.headers['set-cookie']
+      console.log('쿠키 배열:', cookies)
+    } catch (e) {
+      console.log('쿠키 확인 오류:', e)
+    }
+    
+    // Cookie 기반 인증이지만 SiteHeader가 localStorage의 access_token을 체크하므로 저장
+    // 백엔드가 Cookie에 토큰을 설정하지만, 프론트엔드에서도 로그인 상태를 추적하기 위해 저장
+    if (response.data.accessToken || response.data.token) {
+      localStorage.setItem('access_token', response.data.accessToken || response.data.token)
+    } else {
+      // 백엔드가 Cookie만 사용하는 경우, 로그인 성공 표시를 위해 더미 토큰 저장
+      // 실제 인증은 Cookie로 처리되지만, SiteHeader가 로그인 상태를 인식하도록 함
+      localStorage.setItem('access_token', 'authenticated')
+    }
+    
+    // 사용자 정보 저장
     if (response.data.email) {
       localStorage.setItem('user_email', response.data.email)
     }
     if (response.data.role) {
       localStorage.setItem('user_role', response.data.role)
     }
+    if (response.data.memberId) {
+      localStorage.setItem('member_id', response.data.memberId)
+    }
+    
+    // 로그인 상태 변경 이벤트 발생 (SiteHeader가 즉시 반영하도록)
+    window.dispatchEvent(new CustomEvent('auth-changed'))
     
     // 이전 페이지로 리다이렉트 또는 홈으로
     const redirect = route.query.redirect || '/'
