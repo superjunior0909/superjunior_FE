@@ -677,26 +677,28 @@ const goToProduct = (id) => {
 
 // 카테고리 한글 변환
 const categoryMap = {
-  'ELECTRONICS': '전자제품',
-  'FASHION': '패션',
-  'FOOD': '식품',
+  'HOME': '생활 & 주방',
+  'FOOD': '식품 & 간식',
+  'HEALTH': '건강 & 헬스',
   'BEAUTY': '뷰티',
-  'HOME_LIVING': '홈/리빙',
-  'BOOK': '도서',
-  'SPORTS': '스포츠',
-  'OTHER': '기타'
+  'FASHION': '패션 & 의류',
+  'ELECTRONICS': '전자 & 디지털',
+  'KIDS': '유아 & 어린이',
+  'HOBBY': '취미',
+  'PET': '반려동물'
 }
 
 // 카테고리별 기본 이미지
 const categoryImages = {
-  'ELECTRONICS': 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400',
-  'FASHION': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400',
+  'HOME': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400',
   'FOOD': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+  'HEALTH': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
   'BEAUTY': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400',
-  'HOME_LIVING': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400',
-  'BOOK': 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400',
-  'SPORTS': 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400',
-  'OTHER': 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'
+  'FASHION': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400',
+  'ELECTRONICS': 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400',
+  'KIDS': 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400',
+  'HOBBY': 'https://images.unsplash.com/photo-1452857297128-d9c29adba80b?w=400',
+  'PET': 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=400'
 }
 
 // 백엔드 데이터를 프론트엔드 형식으로 변환
