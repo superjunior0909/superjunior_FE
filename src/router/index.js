@@ -17,6 +17,7 @@ import SellerApplication from '../views/SellerApplication.vue'
 import SellerProductsList from '../views/SellerProductsList.vue'
 import SellerProfile from '../views/SellerProfile.vue'
 import ProductRegister from '../views/ProductRegister.vue'
+import ProductUpdate from '../views/ProductUpdate.vue'
 import UserLogin from '../views/UserLogin.vue'
 import UserSignup from '../views/UserSignup.vue'
 import GroupPurchaseCreate from '../views/GroupPurchaseCreate.vue'
@@ -34,6 +35,7 @@ const routes = [
   { path: '/cart', name: 'cart', component: CartPage },
   { path: '/seller', name: 'seller', component: SellerDashboard },
   { path: '/seller/products', name: 'seller-products', component: SellerProductsList },
+  { path: '/seller/products/:productId/edit', name: 'product-update', component: ProductUpdate, props: true },
   { path: '/seller/settlement', name: 'seller-settlement', component: SellerSettlement },
   { path: '/seller/application', name: 'seller-application', component: SellerApplication },
   { path: '/seller/register/product-register', name: 'product-register', component: ProductRegister },

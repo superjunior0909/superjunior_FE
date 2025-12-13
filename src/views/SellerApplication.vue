@@ -4,7 +4,7 @@
       <div class="application-card">
         <div class="application-header">
           <h1>판매자 신청</h1>
-          <p>GameMate에서 판매자로 활동하시려면 아래 정보를 입력해주세요</p>
+          <p>공구공구에서 판매자로 활동하시려면 아래 정보를 입력해주세요</p>
         </div>
         <form @submit.prevent="handleSubmit" class="application-form">
           <div class="form-section">

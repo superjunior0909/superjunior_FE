@@ -147,7 +147,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { generateUUIDFromEmail } from '@/utils/uuid'
+import api from '@/api/axios'
 
 const router = useRouter()
 
@@ -198,40 +198,41 @@ const sendVerificationEmail = async () => {
 
   emailVerifying.value = true
   try {
-    // TODO: 실제 API 호출로 교체
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    const response = await api.get(`/api/members/email/${encodeURIComponent(form.value.email)}`)
+    console.log('이메일 인증 메일 전송 성공:', response.data)
     emailCodeSent.value = true
-    alert('인증 코드가 이메일로 전송되었습니다.')
+    alert('인증 메일이 전송되었습니다. 이메일에서 인증 코드를 확인해주세요.')
   } catch (error) {
-    alert('인증 코드 전송에 실패했습니다. 다시 시도해주세요.')
     console.error('Email verification error:', error)
+    if (error.response?.data?.message) {
+      alert(error.response.data.message)
+    } else {
+      alert('인증 메일 전송에 실패했습니다. 다시 시도해주세요.')
+    }
   } finally {
     emailVerifying.value = false
   }
 }
 
 const verifyEmailCode = async () => {
-  if (!form.value.verificationCode || form.value.verificationCode.length !== 6) {
-    alert('6자리 인증 코드를 입력해주세요.')
+  if (!form.value.verificationCode) {
+    alert('인증 코드를 입력해주세요.')
     return
   }
 
   verifyingCode.value = true
   try {
-    // TODO: 실제 API 호출로 교체
-    // 목업: 인증 코드 검증 (실제로는 서버에서 검증)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 목업: 인증 코드가 '123456'이면 성공
-    if (form.value.verificationCode === '123456') {
-      emailVerified.value = true
-      alert('이메일 인증이 완료되었습니다.')
-    } else {
-      alert('인증 코드가 올바르지 않습니다. (목업: 123456을 입력하세요)')
-    }
+    const response = await api.get(`/api/members/email/verification/${form.value.verificationCode}`)
+    console.log('이메일 인증 성공:', response.data)
+    emailVerified.value = true
+    alert('이메일 인증이 완료되었습니다.')
   } catch (error) {
-    alert('인증 코드 확인에 실패했습니다. 다시 시도해주세요.')
     console.error('Code verification error:', error)
+    if (error.response?.data?.message) {
+      alert(error.response.data.message)
+    } else {
+      alert('인증 코드가 올바르지 않습니다. 다시 확인해주세요.')
+    }
   } finally {
     verifyingCode.value = false
   }
@@ -249,33 +250,27 @@ const handleSignup = async () => {
 
   loading.value = true
   try {
-    // TODO: 실제 API 호출로 교체
-    // 목업: 회원가입 성공 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // member_id 생성 (이메일 기반으로 일관된 UUID 생성)
-    const memberId = generateUUIDFromEmail(form.value.email)
-    
-    // 사용자 정보 저장 (목업)
-    const userData = {
+    const signupData = {
       name: form.value.name,
-      nickname: form.value.nickname,
       email: form.value.email,
-      phone: form.value.phone,
-      userType: form.value.userType,
-      createdAt: new Date().toISOString()
+      password: form.value.password,
+      phoneNumber: form.value.phone
     }
-    localStorage.setItem('user_data', JSON.stringify(userData))
-    localStorage.setItem('access_token', 'mock_token_' + Date.now())
-    localStorage.setItem('user_role', form.value.userType)
-    localStorage.setItem('user_email', form.value.email)
-    localStorage.setItem('member_id', memberId)
-    
-    alert('회원가입이 완료되었습니다!')
-    router.push('/')
+
+    const response = await api.post('/api/members', signupData)
+    console.log('회원가입 성공:', response.data)
+
+    alert('회원가입이 완료되었습니다! 로그인해주세요.')
+    router.push('/login')
   } catch (error) {
-    alert('회원가입에 실패했습니다. 다시 시도해주세요.')
     console.error('Signup error:', error)
+    if (error.response?.data?.message) {
+      alert(error.response.data.message)
+    } else if (error.response?.status === 409) {
+      alert('이미 가입된 이메일입니다.')
+    } else {
+      alert('회원가입에 실패했습니다. 다시 시도해주세요.')
+    }
   } finally {
     loading.value = false
   }

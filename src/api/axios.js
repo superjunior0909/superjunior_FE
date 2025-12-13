@@ -37,6 +37,7 @@ api.interceptors.response.use(
 // 상품 관련 API
 export const productApi = {
     createProduct: (data) => api.post("/products", data),
+    getProductById: (productId) => api.get(`/products/${productId}`),
     updateProduct: (productId, data) => api.patch(`/products/${productId}`, data),
     deleteProduct: (productId) => api.delete(`/products/${productId}`),
 };
