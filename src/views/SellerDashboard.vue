@@ -419,9 +419,15 @@ const router = useRouter()
 
 const seller = ref({ ...sellerProfile })
 const sellerProducts = ref([])
-const loadingProducts = ref(false)
+const sellerGroupPurchases = ref([])
 const groupPurchaseList = ref([])
+const orderList = ref([])
+
+const loading = ref(false)
+const loadingProducts = ref(false)
 const loadingGroupPurchases = ref(false)
+const loadingOrders = ref(false)
+
 const showEditModal = ref(false)
 
 const sellerInfo = ref({
@@ -432,10 +438,6 @@ const sellerInfo = ref({
   phoneNumber: '',
   email: ''
 })
-const sellerGroupPurchases = ref([])
-const showEditModal = ref(false)
-const loading = ref(false)
-const loadingGroupPurchases = ref(false)
 const editForm = ref({
   name: '',
   description: '',
@@ -524,9 +526,6 @@ const settlement = ref({
 
 const notices = ref([...sellerNotices])
 const qna = ref([...sellerQna])
-
-const orderList = ref([])
-const loadingOrders = ref(false)
 
 // 계좌번호 유효성 검사
 const validateAccountNumber = () => {
@@ -788,39 +787,39 @@ const goToGroupPurchase = (id) => {
 }
 
 // 공동 구매 상태 텍스트 변환
-const getPurchaseStatusText = (status) => {
-  if (!status) return '-'
+// const getPurchaseStatusText = (status) => {
+//   if (!status) return '-'
   
-  const statusMap = {
-    'PENDING': '대기중',
-    'IN_PROGRESS': '진행중',
-    'COMPLETED': '완료',
-    'CANCELLED': '취소됨',
-    'pending': '대기중',
-    'in_progress': '진행중',
-    'completed': '완료',
-    'cancelled': '취소됨'
-  }
+//   const statusMap = {
+//     'PENDING': '대기중',
+//     'IN_PROGRESS': '진행중',
+//     'COMPLETED': '완료',
+//     'CANCELLED': '취소됨',
+//     'pending': '대기중',
+//     'in_progress': '진행중',
+//     'completed': '완료',
+//     'cancelled': '취소됨'
+//   }
   
-  return statusMap[status] || status
-}
+//   return statusMap[status] || status
+// }
 
 // 공동 구매 상태 클래스
-const getPurchaseStatusClass = (status) => {
-  if (!status) return ''
+// const getPurchaseStatusClass = (status) => {
+//   if (!status) return ''
   
-  const statusLower = status.toLowerCase()
-  if (statusLower === 'in_progress' || statusLower === 'in-progress') {
-    return 'status-in-progress'
-  } else if (statusLower === 'completed') {
-    return 'status-completed'
-  } else if (statusLower === 'cancelled') {
-    return 'status-cancelled'
-  } else if (statusLower === 'pending') {
-    return 'status-pending'
-  }
-  return ''
-}
+//   const statusLower = status.toLowerCase()
+//   if (statusLower === 'in_progress' || statusLower === 'in-progress') {
+//     return 'status-in-progress'
+//   } else if (statusLower === 'completed') {
+//     return 'status-completed'
+//   } else if (statusLower === 'cancelled') {
+//     return 'status-cancelled'
+//   } else if (statusLower === 'pending') {
+//     return 'status-pending'
+//   }
+//   return ''
+// }
 
 const viewOrderDetail = (orderId) => {
   alert(`주문 상세 정보를 확인합니다. (주문 ID: ${orderId})`)
@@ -1047,10 +1046,6 @@ const getTimeRemaining = (endDate) => {
   return '1시간 이내'
 }
 
-// 공동구매 상세로 이동
-const goToGroupPurchase = (id) => {
-  router.push({ name: 'group-purchase-detail', params: { id } })
-}
 
 onMounted(() => {
   loadSellerInfo()
@@ -1989,23 +1984,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* 빈 상태 */
-.loading-state,
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
-}
-
-.empty-state p {
-  margin: 0 0 16px;
-  color: #999;
-}
-
-.loading-state p {
-  margin: 0;
-  color: #999;
-
 /* 로딩 상태 */
 .loading-state {
   text-align: center;
@@ -2026,6 +2004,18 @@ onMounted(() => {
   50% {
     opacity: 1;
   }
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.empty-state p {
+  margin: 0 0 16px;
+  color: #999;
 }
 
 /* 버튼 */

@@ -224,8 +224,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { groupPurchaseApi } from '@/api/axios'
-import { authAPI } from '@/api/auth'
+import { groupPurchaseApi, productApi } from '@/api/axios'
 
 const router = useRouter()
 
