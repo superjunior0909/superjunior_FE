@@ -393,21 +393,26 @@ const handleSubmit = async () => {
 const fetchProducts = async () => {
   loadingProducts.value = true
   try {
-    // 내 상품 목록 조회 API 호출 (판매자 전용)
     const response = await productApi.getMyProducts()
     console.log('내 상품 목록:', response.data)
 
-    // ProductDetailInfo 형식을 선택 옵션에 맞게 변환
     let productList = []
-    if (response.data && response.data.data) {
+
+    // ✅ Pageable 응답 처리
+    if (response.data?.data?.content && Array.isArray(response.data.data.content)) {
+      productList = response.data.data.content
+    }
+    // ✅ 배열로 바로 오는 경우 대비
+    else if (Array.isArray(response.data?.data)) {
       productList = response.data.data
-    } else if (Array.isArray(response.data)) {
+    }
+    else if (Array.isArray(response.data)) {
       productList = response.data
     }
 
-    // 백엔드 ProductDetailInfo를 form에 맞게 변환
+    // ✅ map 안전
     products.value = productList.map(p => ({
-      id: p.productId,
+      productId: p.productId,
       name: p.name,
       stock: p.stock,
       price: p.price,
@@ -417,10 +422,8 @@ const fetchProducts = async () => {
     console.log('변환된 상품 목록:', products.value)
   } catch (error) {
     console.error('상품 목록 조회 실패:', error)
-    const errorMessage = error.response?.data?.message || '상품 목록을 불러오는데 실패했습니다.'
-    alert(errorMessage)
     products.value = []
-    alert('상품 목록을 불러오는데 실패했습니다.')
+    alert(error.response?.data?.message || '상품 목록을 불러오는데 실패했습니다.')
   } finally {
     loadingProducts.value = false
   }
