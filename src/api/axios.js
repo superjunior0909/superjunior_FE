@@ -2,7 +2,11 @@
 import axios from "axios";
 import router from "@/router";
 
-const BASE_URL = "/api"; // Gateway 프록시 경유
+// 개발 환경: 프록시 사용 (/api)
+// 프로덕션 환경: 실제 백엔드 URL 사용 (https://0982.store/api)
+const BASE_URL = process.env.NODE_ENV === 'production'
+  ? "https://0982.store/api"
+  : "/api";
 
 // 단일 Axios 인스턴스
 export const api = axios.create({
