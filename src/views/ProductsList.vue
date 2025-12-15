@@ -202,9 +202,10 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { groupPurchaseApi } from '@/api/axios'
 
+const route = useRoute()
 const router = useRouter()
 
 /* ======================
@@ -414,11 +415,23 @@ const goToDetail = (id) => {
   router.push({ name: 'group-purchase-detail', params: { id } })
 }
 
-/* ✅ 정렬 바뀌면 즉시 로드 */
-watch(sortBy, () => loadProducts())
-watch(keyword, () => {
-  loadProducts()
-})
+watch(
+  () => route.query,
+  (query) => {
+    // 🔍 검색어
+    keyword.value = query.q ?? ''
+
+    // 🗂 카테고리
+    selectedCategory.value = query.category ?? ''
+
+    // 📄 페이지 초기화
+    page.value = 0
+
+    // 🔥 실제 검색 실행
+    loadProducts()
+  },
+  { immediate: true }
+)
 
 /* ======================
  * INIT

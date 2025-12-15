@@ -422,7 +422,6 @@ const fetchNewProducts = async () => {
 }
 
 const onSearch = () => {
-  if (!keyword.value.trim()) return
   router.push({ path: '/products', query: { q: keyword.value } })
 }
 
