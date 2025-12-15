@@ -101,7 +101,20 @@
               </div>
               <div class="product-footer">
                 <span class="time-left">⏰ {{ product.timeLeft }}</span>
-                <button class="btn btn-primary btn-sm">참여하기</button>
+                <div class="footer-actions">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    @click.stop="addToCart(product)"
+                  >
+                    장바구니
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm"
+                    @click.stop="goToProduct(product.id)"
+                  >
+                    참여하기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -219,7 +232,20 @@
               </div>
               <div class="product-footer">
                 <span class="time-left">⏰ {{ product.timeLeft }}</span>
-                <button class="btn btn-primary btn-sm">참여하기</button>
+                <div class="footer-actions">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    @click.stop="addToCart(product)"
+                  >
+                    장바구니
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm"
+                    @click.stop="goToProduct(product.id)"
+                  >
+                    참여하기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -405,6 +431,7 @@ const mapToProductCard = (gp) => {
   return {
     // ✅ 유지
     id: gp.groupPurchaseId,
+    groupPurchaseId: gp.groupPurchaseId, // 명시적으로 groupPurchaseId 추가
     title: gp.title,
     subtitle: gp.description,
     category: categoryKorean,
@@ -468,9 +495,19 @@ const goToProduct = (productId) => {
 
 const addToCart = async (product) => {
   try {
-    await cartApi.addToCart({
-      groupPurchaseId: product.id,
+    const response = await cartApi.addToCart({
+      groupPurchaseId: product.groupPurchaseId || product.id,
       quantity: 1
+    })
+    // ResponseDto<CartInfo> 구조에서 data 추출
+    const cartInfo = response.data?.data || response.data
+    console.log('장바구니 추가 성공:', {
+      cartId: cartInfo?.cartId,
+      memberId: cartInfo?.memberId,
+      groupPurchaseId: cartInfo?.groupPurchaseId,
+      quantity: cartInfo?.quantity,
+      createdAt: cartInfo?.createdAt,
+      updatedAt: cartInfo?.updatedAt
     })
     alert('장바구니에 담았습니다.')
     // FloatingCart 업데이트 이벤트 발생

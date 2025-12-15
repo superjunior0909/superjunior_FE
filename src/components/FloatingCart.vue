@@ -80,8 +80,10 @@ const loadCartItems = async () => {
   try {
     loading.value = true
     const response = await cartApi.getCart(0, 100)
-    // pageable 응답에서 content 추출
-    const cartData = response.data?.content || response.data?.data || response.data || []
+    // ResponseDto<PageResponse<CartInfo>> 구조에서 content 추출
+    // PageResponse 구조: { content, totalPages, totalElements, first, last, size, numberOfElements }
+    const pageResponse = response.data?.data || response.data
+    const cartData = pageResponse?.content || []
     
     // 각 장바구니 항목에 공동구매 정보 가져오기
     const itemsWithDetails = await Promise.all(
@@ -106,6 +108,10 @@ const loadCartItems = async () => {
     items.value = itemsWithDetails
   } catch (error) {
     console.error('장바구니 조회 실패:', error)
+    // 503 에러는 서버 연결 문제이므로 조용히 처리 (사용자에게는 빈 장바구니 표시)
+    if (error.response?.status === 503) {
+      console.warn('Gateway 서버에 연결할 수 없습니다. Gateway가 실행 중인지 확인하세요.')
+    }
     items.value = []
   } finally {
     loading.value = false

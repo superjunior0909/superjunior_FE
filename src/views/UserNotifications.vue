@@ -88,7 +88,7 @@ const loading = ref(false)
 const currentPage = ref(0)
 const totalPages = ref(0)
 const pageSize = 20
-const currentTab = ref('all')
+const currentTab = ref('unread') // 기본값을 읽지 않은 알림으로 설정
 
 // 알림 목록 조회
 const fetchNotifications = async (page = 0) => {

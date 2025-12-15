@@ -538,9 +538,19 @@ const getOrdersForGroupPurchase = (groupId) => {
 // 장바구니 담기 (목록, 수량 기본 1)
 const addToCartFromList = async (groupPurchaseId) => {
   try {
-    await cartApi.addToCart({
+    const response = await cartApi.addToCart({
       groupPurchaseId,
       quantity: 1
+    })
+    // ResponseDto<CartInfo> 구조에서 data 추출
+    const cartInfo = response.data?.data || response.data
+    console.log('장바구니 추가 성공:', {
+      cartId: cartInfo?.cartId,
+      memberId: cartInfo?.memberId,
+      groupPurchaseId: cartInfo?.groupPurchaseId,
+      quantity: cartInfo?.quantity,
+      createdAt: cartInfo?.createdAt,
+      updatedAt: cartInfo?.updatedAt
     })
     alert('장바구니에 담았습니다.')
     // FloatingCart 업데이트 이벤트 발생

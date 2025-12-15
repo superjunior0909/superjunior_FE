@@ -152,12 +152,16 @@ export const notificationApi = {
 // 주문 관련 API
 export const orderApi = {
     createOrder: (data) => api.post("/orders", data),
+    createOrderFromCart: (data) => api.post("/orders/cart", data), // 장바구니에서 주문
 };
 
 // 장바구니 관련 API
 export const cartApi = {
     getCart: (page = 0, size = 100) => api.get("/carts", { params: { page, size } }),
     addToCart: (data) => api.post("/carts", data),
+    updateCart: (data) => api.patch("/carts", data), // { cartId, quantity }
+    deleteFromCart: (data) => api.delete("/carts", { data }), // { cartId }
+    flushCart: () => api.delete("/carts/all"),
 };
 
 // 판매자 정산 관련 API

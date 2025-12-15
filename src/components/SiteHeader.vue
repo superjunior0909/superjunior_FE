@@ -7,7 +7,7 @@
       </div>
       <nav class="nav">
         <router-link class="nav-link" to="/">홈</router-link>
-        <router-link class="nav-link" to="/products">상품</router-link>
+        <router-link class="nav-link" to="/products">공동 구매</router-link>
         <!-- <router-link class="nav-link" to="/community">커뮤니티</router-link> -->
       </nav>
       <div class="actions">
@@ -33,7 +33,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { notificationApi } from '@/api/axios'
+import { cartApi } from '@/api/axios'
 
 const router = useRouter()
 
@@ -41,31 +41,48 @@ const isLoggedIn = ref(false)
 const cartCount = ref(0)
 const notificationCount = ref(0)
 let authCheckInterval = null
-let notificationCheckInterval = null
+let cartCountInterval = null
 
-const checkAuthStatus = () => {
+const checkAuthStatus = async () => {
   const token = localStorage.getItem('access_token')
+  const wasLoggedIn = isLoggedIn.value
   isLoggedIn.value = !!token
-}
-
-const loadCartCount = () => {
-  // 추후 API 호출로 교체
-  cartCount.value = 3
-}
-
-const loadNotificationCount = async () => {
-  if (!isLoggedIn.value) {
+  if (!token) {
+    cartCount.value = 0
     notificationCount.value = 0
+  } else if (!wasLoggedIn) {
+    // 로그인 상태로 변경된 경우 장바구니와 알림 개수 로드
+    await loadCartCount()
+    loadNotificationCount()
+  }
+}
+
+const loadCartCount = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    cartCount.value = 0
     return
   }
 
   try {
-    const count = await notificationApi.getUnreadCount()
-    notificationCount.value = count
+    const response = await cartApi.getCart(0, 100)
+    const pageResponse = response.data?.data || response.data
+    const cartData = pageResponse?.content || []
+    // 장바구니 항목의 총 수량 계산
+    cartCount.value = cartData.reduce((sum, item) => sum + (item.quantity || 0), 0)
   } catch (error) {
-    console.error('읽지 않은 알림 개수 조회 실패:', error)
-    // 에러가 나도 기존 값 유지
+    console.error('장바구니 개수 조회 실패:', error)
+    cartCount.value = 0
   }
+}
+
+const handleCartUpdated = () => {
+  loadCartCount()
+}
+
+const loadNotificationCount = () => {
+  // 추후 API 호출로 교체
+  notificationCount.value = 2
 }
 
 const goToCart = () => {
@@ -80,20 +97,14 @@ const goToMyPage = () => {
   router.push('/me/profile')
 }
 
-const handleStorageChange = (e) => {
+const handleStorageChange = async (e) => {
   if (e.key === 'access_token') {
-    checkAuthStatus()
-    loadNotificationCount()
+    await checkAuthStatus()
   }
 }
 
-const handleAuthChanged = () => {
-  checkAuthStatus()
-  loadNotificationCount()
-}
-
-const handleNotificationChanged = () => {
-  loadNotificationCount()
+const handleAuthChanged = async () => {
+  await checkAuthStatus()
 }
 
 const handleLogout = () => {
@@ -105,50 +116,51 @@ const handleLogout = () => {
     localStorage.removeItem('user_profile')
     localStorage.removeItem('member_id')
     isLoggedIn.value = false
+    cartCount.value = 0
+    notificationCount.value = 0
     router.push('/')
   }
 }
 
 onMounted(() => {
-  // 추후 실제 데이터로 교체
   checkAuthStatus()
   loadCartCount()
   loadNotificationCount()
-
+  
   // 로그인 상태 변경 감지 (다른 탭에서의 변경)
   window.addEventListener('storage', handleStorageChange)
-
+  
   // 커스텀 이벤트로 로그인 상태 변경 감지 (같은 탭에서의 변경)
   window.addEventListener('auth-changed', handleAuthChanged)
-
-  // 알림 상태 변경 감지 (알림을 읽었을 때)
-  window.addEventListener('notification-changed', handleNotificationChanged)
-
+  
+  // 장바구니 업데이트 이벤트 리스너
+  window.addEventListener('cart-updated', handleCartUpdated)
+  
   // 같은 탭에서의 변경 감지를 위한 주기적 체크
-  authCheckInterval = setInterval(() => {
+  authCheckInterval = setInterval(async () => {
     const token = localStorage.getItem('access_token')
     if (!!token !== isLoggedIn.value) {
-      checkAuthStatus()
+      await checkAuthStatus()
     }
   }, 1000)
-
-  // 읽지 않은 알림 개수 주기적 갱신 (30초마다)
-  notificationCheckInterval = setInterval(() => {
+  
+  // 장바구니 개수 주기적 업데이트 (5초마다)
+  cartCountInterval = setInterval(() => {
     if (isLoggedIn.value) {
-      loadNotificationCount()
+      loadCartCount()
     }
-  }, 30000)
+  }, 5000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorageChange)
   window.removeEventListener('auth-changed', handleAuthChanged)
-  window.removeEventListener('notification-changed', handleNotificationChanged)
+  window.removeEventListener('cart-updated', handleCartUpdated)
   if (authCheckInterval) {
     clearInterval(authCheckInterval)
   }
-  if (notificationCheckInterval) {
-    clearInterval(notificationCheckInterval)
+  if (cartCountInterval) {
+    clearInterval(cartCountInterval)
   }
 })
 </script>

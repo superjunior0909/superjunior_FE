@@ -122,23 +122,9 @@
               <span>총 금액:</span>
               <strong>₩{{ ((participateQuantity || 0) * (groupPurchase.discountedPrice || 0)).toLocaleString() }}</strong>
             </div>
-            <div class="shipping-form">
-              <h4>배송 정보</h4>
-              <AddressSearch v-model="shippingInfo" />
-              <div class="form-group">
-                <label for="receiverName">수신자 이름</label>
-                <input
-                  id="receiverName"
-                  v-model="shippingInfo.receiverName"
-                  type="text"
-                  maxlength="100"
-                  placeholder="수신자 이름을 입력하세요"
-                />
-              </div>
-            </div>
             <button
               class="btn btn-participate"
-              :disabled="!canParticipate || !isOrderFormValid || participateLoading"
+              :disabled="!canParticipate || participateLoading"
               @click="handleParticipate"
             >
               {{ participateLoading ? '처리 중...' : getParticipateButtonText }}
@@ -167,8 +153,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { groupPurchaseApi, cartApi, orderApi } from '@/api/axios'
-import AddressSearch from '@/components/AddressSearch.vue'
+import { groupPurchaseApi, cartApi } from '@/api/axios'
 
 // eslint-disable-next-line no-undef
 const props = defineProps({
@@ -184,12 +169,6 @@ const loading = ref(false)
 const imageError = ref(false)
 const participateQuantity = ref(1)
 const participateLoading = ref(false)
-const shippingInfo = ref({
-  address: '',
-  addressDetail: '',
-  postalCode: '',
-  receiverName: ''
-})
 
 // 카테고리 한글 변환
 const categoryMap = {
@@ -257,23 +236,14 @@ const canParticipate = computed(() => {
   return true
 })
 
-// 주문 폼 유효성
-const isOrderFormValid = computed(() => {
-  const { address, addressDetail, postalCode, receiverName } = shippingInfo.value
-  if (!address || address.trim().length < 5 || address.trim().length > 100) return false
-  if (!addressDetail || addressDetail.trim().length < 1 || addressDetail.trim().length > 100) return false
-  if (!postalCode || postalCode.trim().length === 0) return false
-  if (receiverName && receiverName.trim().length > 100) return false
-  return true
-})
 
 const groupPurchaseIdForOrder = computed(() => {
   return groupPurchase.value?.groupPurchaseId || groupPurchase.value?.id || props.id
 })
 
-const sellerIdForOrder = computed(() => {
-  return groupPurchase.value?.sellerId || groupPurchase.value?.seller?.sellerId || null
-})
+// const sellerIdForOrder = computed(() => {
+//   return groupPurchase.value?.sellerId || groupPurchase.value?.seller?.sellerId || null
+// })
 
 // 참여 버튼 텍스트
 const getParticipateButtonText = computed(() => {
@@ -382,54 +352,25 @@ const goToProduct = () => {
   }
 }
 
-const handleParticipate = async () => {
-  if (!canParticipate.value || !isOrderFormValid.value) {
-    alert('참여 조건과 배송 정보를 확인해주세요.')
+const handleParticipate = () => {
+  if (!canParticipate.value) {
+    alert('참여 조건을 확인해주세요.')
     return
   }
 
-  if (!sellerIdForOrder.value) {
-    alert('판매자 정보를 불러오지 못했습니다.')
+  if (!groupPurchaseIdForOrder.value) {
+    alert('공동구매 정보를 불러오지 못했습니다.')
     return
   }
 
-  const confirmMessage = `${participateQuantity.value}개를 ₩${(participateQuantity.value * (groupPurchase.value.discountedPrice || 0)).toLocaleString()}에 구매하시겠습니까?`
-  if (!confirm(confirmMessage)) {
-    return
-  }
-
-  participateLoading.value = true
-  try {
-    const payload = {
-      quantity: participateQuantity.value,
-      address: shippingInfo.value.address.trim(),
-      addressDetail: shippingInfo.value.addressDetail.trim(),
-      postalCode: shippingInfo.value.postalCode.trim(),
-      receiverName: shippingInfo.value.receiverName?.trim() || '',
-      sellerId: sellerIdForOrder.value,
-      groupPurchaseId: groupPurchaseIdForOrder.value
+  // 주문 화면으로 이동
+  router.push({
+    path: '/order/create',
+    query: {
+      groupPurchaseId: groupPurchaseIdForOrder.value,
+      quantity: participateQuantity.value || 1
     }
-
-    await orderApi.createOrder(payload)
-
-    alert('공동구매 참여가 완료되었습니다!')
-
-    // 참여 후 데이터 새로고침
-    await loadGroupPurchase()
-    participateQuantity.value = 1
-    shippingInfo.value = {
-      address: '',
-      addressDetail: '',
-      postalCode: '',
-      receiverName: ''
-    }
-  } catch (error) {
-    console.error('공동구매 참여 실패:', error)
-    const errorMessage = error.response?.data?.message || '공동구매 참여에 실패했습니다.'
-    alert(errorMessage)
-  } finally {
-    participateLoading.value = false
-  }
+  })
 }
 
 // 장바구니 담기 (공동구매 상세, 선택 수량)
@@ -445,14 +386,23 @@ const addToCartFromDetail = async () => {
   }
 
   try {
-    await cartApi.addToCart({
+    const response = await cartApi.addToCart({
       groupPurchaseId: groupPurchaseIdForOrder.value,
       quantity: participateQuantity.value || 1
+    })
+    // ResponseDto<CartInfo> 구조에서 data 추출
+    const cartInfo = response.data?.data || response.data
+    console.log('장바구니 추가 성공:', {
+      cartId: cartInfo?.cartId,
+      memberId: cartInfo?.memberId,
+      groupPurchaseId: cartInfo?.groupPurchaseId,
+      quantity: cartInfo?.quantity,
+      createdAt: cartInfo?.createdAt,
+      updatedAt: cartInfo?.updatedAt
     })
     alert('장바구니에 담았습니다.')
     // FloatingCart 업데이트 이벤트 발생
     window.dispatchEvent(new CustomEvent('cart-updated'))
-    alert('장바구니에 담았습니다.')
   } catch (error) {
     console.error('장바구니 담기 실패:', error)
     const errorMessage = error.response?.data?.message || '장바구니 담기에 실패했습니다.'
@@ -805,47 +755,6 @@ watch(() => props.id, () => {
   font-weight: 700;
 }
 
-.shipping-form {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.shipping-form h4 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.shipping-form .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.shipping-form label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0e0e0;
-}
-
-.shipping-form input {
-  padding: 12px 14px;
-  background: #0a0a0a;
-  border: 2px solid #2a2a2a;
-  border-radius: 10px;
-  font-size: 15px;
-  color: #ffffff;
-  transition: border-color 0.2s;
-}
-
-.shipping-form input:focus {
-  outline: none;
-  border-color: #51cf66;
-  background: #101010;
-}
 
 .btn-participate {
   width: 100%;

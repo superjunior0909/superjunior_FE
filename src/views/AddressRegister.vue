@@ -33,9 +33,11 @@
         </div>
 
         <!-- 제출 버튼 -->
-        <button type="submit" class="submit-btn">
-          배송지 추가
-        </button>
+        <div class="form-actions">
+          <button type="submit" class="submit-btn">
+            배송지 추가
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -155,6 +157,10 @@ h1 {
   background: #151515;
 }
 
+.form-actions {
+  margin-top: 8px;
+}
+
 .submit-btn {
   width: 100%;
   padding: 16px;
@@ -166,7 +172,6 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 16px;
 }
 
 .submit-btn:hover {

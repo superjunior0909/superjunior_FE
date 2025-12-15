@@ -27,6 +27,8 @@ import GroupPurchaseEdit from '../views/GroupPurchaseEdit.vue'
 import PointCharge from '../views/PointCharge.vue'
 import PointChargeSuccess from '../views/PointChargeSuccess.vue'
 import PointChargeFail from '../views/PointChargeFail.vue'
+import OrderCreate from '../views/OrderCreate.vue'
+import OrderComplete from '../views/OrderComplete.vue'
 
 const routes = [
   // 공개 페이지 (로그인 불필요)
@@ -64,7 +66,11 @@ const routes = [
   // 포인트 (인증 필요)
   { path: '/point/charge', name: 'point-charge', component: PointCharge, meta: { requiresAuth: true } },
   { path: '/point/charge/success', name: 'point-charge-success', component: PointChargeSuccess, meta: { requiresAuth: true } },
-  { path: '/point/charge/fail', name: 'point-charge-fail', component: PointChargeFail, meta: { requiresAuth: true } }
+  { path: '/point/charge/fail', name: 'point-charge-fail', component: PointChargeFail, meta: { requiresAuth: true } },
+
+  // 주문 (인증 필요)
+  { path: '/order/create', name: 'order-create', component: OrderCreate, meta: { requiresAuth: true } },
+  { path: '/order/complete', name: 'order-complete', component: OrderComplete, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({

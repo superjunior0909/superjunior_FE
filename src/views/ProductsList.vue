@@ -169,7 +169,20 @@
 
               <div class="card-footer">
                 <span class="time">⏰ {{ product.timeLeft }}</span>
-                <button class="btn btn-primary">장바구니 담기</button>
+                <div class="footer-actions">
+                  <button 
+                    class="btn btn-outline btn-sm"
+                    @click.stop="addToCart(product)"
+                  >
+                    장바구니
+                  </button>
+                  <button 
+                    class="btn btn-primary btn-sm"
+                    @click.stop="goToDetail(product.id)"
+                  >
+                    참가하기
+                  </button>
+                </div>
               </div>
             </div>
           </article>
@@ -203,7 +216,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { groupPurchaseApi } from '@/api/axios'
+import { groupPurchaseApi, cartApi } from '@/api/axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -413,6 +426,23 @@ const search = () => loadProducts()
 
 const goToDetail = (id) => {
   router.push({ name: 'group-purchase-detail', params: { id } })
+}
+
+const addToCart = async (product) => {
+  try {
+    const response = await cartApi.addToCart({
+      groupPurchaseId: product.id,
+      quantity: 1
+    })
+    console.log('장바구니 추가 성공:', response.data)
+    alert('장바구니에 담았습니다.')
+    // FloatingCart 업데이트 이벤트 발생
+    window.dispatchEvent(new CustomEvent('cart-updated'))
+  } catch (error) {
+    console.error('장바구니 담기 실패:', error)
+    const message = error.response?.data?.message || '장바구니 담기에 실패했습니다.'
+    alert(message)
+  }
 }
 
 watch(
@@ -766,6 +796,11 @@ onMounted(loadProducts)
   align-items: center;
 }
 
+.footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .time {
   font-size: 13px;
   color: #999;
@@ -797,6 +832,11 @@ onMounted(loadProducts)
 .btn-outline:hover {
   background: #2a2a2a;
   border-color: #4a4a4a;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .empty-state {
