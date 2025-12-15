@@ -210,19 +210,58 @@ const changeQuantity = async (cartId, delta) => {
   updatingItems.value.add(cartId)
   
   try {
-    await cartApi.updateCart({
+    const requestData = {
       cartId,
       quantity: newQuantity
-    })
-    // 장바구니 목록 다시 불러오기
-    await loadCartItems()
+    }
+    
+    console.log('PATCH 요청 전송:', requestData)
+    console.log('요청 URL:', '/api/carts')
+    
+    const response = await cartApi.updateCart(requestData)
+    
+    console.log('PATCH 응답 받음:', response)
+    console.log('PATCH 응답 데이터:', response.data)
+    
+    // PATCH 응답에서 업데이트된 데이터 사용
+    // ResponseDto<CartInfo> 구조: response.data.data 또는 response.data
+    const updatedCartItem = response.data?.data || response.data
+    
+    console.log('업데이트할 장바구니 항목:', updatedCartItem)
+    
+    if (updatedCartItem && updatedCartItem.cartId) {
+      // 로컬 상태만 업데이트 (GET 요청 없이)
+      const itemIndex = items.value.findIndex(i => i.cartId === cartId)
+      if (itemIndex !== -1) {
+        // 응답 데이터로 모든 필드 업데이트 (공동구매 정보는 유지)
+        items.value[itemIndex] = {
+          ...items.value[itemIndex],
+          cartId: updatedCartItem.cartId,
+          memberId: updatedCartItem.memberId,
+          groupPurchaseId: updatedCartItem.groupPurchaseId,
+          quantity: updatedCartItem.quantity,
+          createdAt: updatedCartItem.createdAt,
+          updatedAt: updatedCartItem.updatedAt
+        }
+        console.log('로컬 상태 업데이트 완료:', items.value[itemIndex])
+      } else {
+        console.warn('업데이트할 항목을 찾을 수 없음:', cartId)
+        // 항목을 찾을 수 없으면 전체 목록 다시 불러오기
+        await loadCartItems()
+      }
+    } else {
+      console.warn('응답에 유효한 데이터가 없음, 전체 목록 다시 불러오기')
+      // 응답에 데이터가 없으면 전체 목록 다시 불러오기
+      await loadCartItems()
+    }
+    
     // 장바구니 개수 업데이트 이벤트 발생
     window.dispatchEvent(new CustomEvent('cart-updated'))
   } catch (error) {
     console.error('수량 변경 실패:', error)
     const errorMessage = error.response?.data?.message || '수량 변경에 실패했습니다.'
     alert(errorMessage)
-    // 에러 발생 시에도 목록 다시 불러오기
+    // 에러 발생 시에는 전체 목록 다시 불러오기
     await loadCartItems()
   } finally {
     updatingItems.value.delete(cartId)
