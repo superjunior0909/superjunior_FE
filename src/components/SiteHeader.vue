@@ -33,6 +33,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { notificationApi } from '@/api/axios'
 
 const router = useRouter()
 
@@ -40,6 +41,7 @@ const isLoggedIn = ref(false)
 const cartCount = ref(0)
 const notificationCount = ref(0)
 let authCheckInterval = null
+let notificationCheckInterval = null
 
 const checkAuthStatus = () => {
   const token = localStorage.getItem('access_token')
@@ -51,9 +53,19 @@ const loadCartCount = () => {
   cartCount.value = 3
 }
 
-const loadNotificationCount = () => {
-  // 추후 API 호출로 교체
-  notificationCount.value = 2
+const loadNotificationCount = async () => {
+  if (!isLoggedIn.value) {
+    notificationCount.value = 0
+    return
+  }
+
+  try {
+    const count = await notificationApi.getUnreadCount()
+    notificationCount.value = count
+  } catch (error) {
+    console.error('읽지 않은 알림 개수 조회 실패:', error)
+    // 에러가 나도 기존 값 유지
+  }
 }
 
 const goToCart = () => {
@@ -71,11 +83,17 @@ const goToMyPage = () => {
 const handleStorageChange = (e) => {
   if (e.key === 'access_token') {
     checkAuthStatus()
+    loadNotificationCount()
   }
 }
 
 const handleAuthChanged = () => {
   checkAuthStatus()
+  loadNotificationCount()
+}
+
+const handleNotificationChanged = () => {
+  loadNotificationCount()
 }
 
 const handleLogout = () => {
@@ -96,13 +114,16 @@ onMounted(() => {
   checkAuthStatus()
   loadCartCount()
   loadNotificationCount()
-  
+
   // 로그인 상태 변경 감지 (다른 탭에서의 변경)
   window.addEventListener('storage', handleStorageChange)
-  
+
   // 커스텀 이벤트로 로그인 상태 변경 감지 (같은 탭에서의 변경)
   window.addEventListener('auth-changed', handleAuthChanged)
-  
+
+  // 알림 상태 변경 감지 (알림을 읽었을 때)
+  window.addEventListener('notification-changed', handleNotificationChanged)
+
   // 같은 탭에서의 변경 감지를 위한 주기적 체크
   authCheckInterval = setInterval(() => {
     const token = localStorage.getItem('access_token')
@@ -110,13 +131,24 @@ onMounted(() => {
       checkAuthStatus()
     }
   }, 1000)
+
+  // 읽지 않은 알림 개수 주기적 갱신 (30초마다)
+  notificationCheckInterval = setInterval(() => {
+    if (isLoggedIn.value) {
+      loadNotificationCount()
+    }
+  }, 30000)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('storage', handleStorageChange)
   window.removeEventListener('auth-changed', handleAuthChanged)
+  window.removeEventListener('notification-changed', handleNotificationChanged)
   if (authCheckInterval) {
     clearInterval(authCheckInterval)
+  }
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval)
   }
 })
 </script>

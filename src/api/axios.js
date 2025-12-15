@@ -162,6 +162,11 @@ export const notificationApi = {
         const params = { page, size, sort }
         return api.get("/notifications/unread", { params })
     },
+    // 읽지 않은 알림 개수 조회
+    getUnreadCount: () => {
+        return api.get("/notifications/unread", { params: { page: 0, size: 1 } })
+            .then(response => response.data.data.totalElements || 0)
+    },
     // 알림 읽음 처리
     markAsRead: (notificationId) => api.patch(`/notifications/${notificationId}/read`),
     // 알림 전체 읽음 처리

@@ -163,10 +163,13 @@ const markAsRead = async (id) => {
     try {
       await notificationApi.markAsRead(id)
       notification.read = true
+      // 알림 상태 변경 이벤트 발생 (헤더의 배지 숫자 업데이트용)
+      window.dispatchEvent(new Event('notification-changed'))
     } catch (error) {
       console.error('알림 읽음 처리 실패:', error)
       // 에러가 나도 UI상으로는 읽음 처리 (낙관적 업데이트)
       notification.read = true
+      window.dispatchEvent(new Event('notification-changed'))
     }
   }
 }
@@ -178,6 +181,8 @@ const markAllAsRead = async () => {
     notifications.value.forEach(notification => {
       notification.read = true
     })
+    // 알림 상태 변경 이벤트 발생 (헤더의 배지 숫자 업데이트용)
+    window.dispatchEvent(new Event('notification-changed'))
   } catch (error) {
     console.error('알림 전체 읽음 처리 실패:', error)
     alert('알림 읽음 처리에 실패했습니다.')
