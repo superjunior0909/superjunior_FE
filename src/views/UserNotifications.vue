@@ -81,6 +81,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { notificationApi } from '@/api/axios'
+import { getRelativeTime } from '@/utils/timeFormatter'
 
 const notifications = ref([])
 const loading = ref(false)
@@ -114,7 +115,7 @@ const fetchNotifications = async (page = 0) => {
       failureMessage: notification.failureMessage,
       read: notification.status === 'READ',
       referenceId: notification.referenceId,
-      time: '방금 전' // TODO: createdAt 필드가 백엔드에 추가되면 실제 시간으로 변경
+      time: getRelativeTime(notification.createdAt)
     }))
 
     notifications.value = transformedNotifications
