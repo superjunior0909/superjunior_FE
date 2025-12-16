@@ -102,9 +102,11 @@ const categoryImages = {
 }
 
 const loadSellerInfo = async () => {
+  console.log('SellerProfile - 받은 판매자 ID:', props.id)
   try {
     const response = await api.get(`/sellers/${props.id}`)
     const sellerData = response.data.data ?? response.data
+    console.log('판매자 정보:', sellerData)
     seller.value = {
       name: sellerData.name || sellerData.businessName || '판매자'
     }
