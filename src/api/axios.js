@@ -1,6 +1,5 @@
 // api/axios.js
 import axios from "axios";
-import router from "@/router";
 
 // 개발 환경: 프록시 사용 (/api)
 // 프로덕션 환경: 실제 백엔드 URL 사용 (https://0982.store/api)
