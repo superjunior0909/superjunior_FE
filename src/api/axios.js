@@ -22,113 +22,111 @@ export const api = axios.create({
  * Refresh Queue (JS 전용)
  * =========================
  */
-// let isRefreshing = false;
-// let refreshPromise = null; // Promise<void> | null
-// let queue = []; // { resolve, reject }[]
+let isRefreshing = false;
+let refreshPromise = null; // Promise<void> | null
+let queue = []; // { resolve, reject }[]
 
-// function flushQueueSuccess() {
-//   queue.forEach(({ resolve }) => resolve());
-//   queue = [];
-// }
+function flushQueueSuccess() {
+  queue.forEach(({ resolve }) => resolve());
+  queue = [];
+}
 
-// function flushQueueFail(err) {
-//   queue.forEach(({ reject }) => reject(err));
-//   queue = [];
-// }
+function flushQueueFail(err) {
+  queue.forEach(({ reject }) => reject(err));
+  queue = [];
+}
 
-// async function runRefresh() {
-//   // 이미 refresh 중이면 같은 Promise 공유
-//   if (isRefreshing && refreshPromise) return refreshPromise;
+async function runRefresh() {
+  // 이미 refresh 중이면 같은 Promise 공유
+  if (isRefreshing && refreshPromise) return refreshPromise;
 
-//   isRefreshing = true;
+  isRefreshing = true;
 
-//   refreshPromise = (async () => {
-//     try {
-//       await api.get("/auth/refresh");
-//       flushQueueSuccess();
-//     } catch (e) {
-//       flushQueueFail(e);
-//       throw e;
-//     } finally {
-//       isRefreshing = false;
-//       refreshPromise = null;
-//     }
-//   })();
+  refreshPromise = (async () => {
+    try {
+      await api.get("/auth/refresh");
+      flushQueueSuccess();
+    } catch (e) {
+      flushQueueFail(e);
+      throw e;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
 
-//   return refreshPromise;
-// }
+  return refreshPromise;
+}
 
-// /**
-//  * =========================
-//  * Response Interceptor
-//  * =========================
-//  */
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config || {};
-//     const currentPath = router.currentRoute.value.fullPath;
+/**
+ * =========================
+ * Response Interceptor
+ * =========================
+ */
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config || {};
 
-//     // 네트워크 에러 등 response 없으면 그대로
-//     if (!error.response) return Promise.reject(error);
+    // 네트워크 에러 등 response 없으면 그대로
+    if (!error.response) return Promise.reject(error);
 
-//     const status = error.response.status;
-//     const reqUrl = originalRequest.url || "";
+    const status = error.response.status;
+    const reqUrl = originalRequest.url || "";
 
-//     // refresh 요청 자체는 인터셉터에서 제외 (무한루프 방지)
-//     if (reqUrl.includes("/auth/refresh")) {
-//       router.push({ path: "/login", query: { redirect: currentPath } });
-//       return Promise.reject(error);
-//     }
+    // 인증 관련 요청은 인터셉터에서 제외 (무한루프 방지, 정상적인 에러일 수 있음)
+    if (
+      reqUrl.includes("/auth/refresh") ||
+      reqUrl.includes("/auth/login") ||
+      reqUrl.includes("/auth/signup") ||
+      reqUrl.includes("/auth/register")
+    ) {
+      return Promise.reject(error);
+    }
 
-//     // 401 아니면 그대로
-//     if (status !== 401) {
-//       return Promise.reject(error);
-//     }
+    // 401 아니면 그대로
+    if (status !== 401) {
+      return Promise.reject(error);
+    }
 
-//     // 이미 재시도한 요청이면 반복 금지
-//     if (originalRequest._retry) {
-//       router.push({ path: "/login", query: { redirect: currentPath } });
-//       return Promise.reject(error);
-//     }
+    // 이미 재시도한 요청이면 반복 금지
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
 
-//     // 만료 토큰 판별(문자열 의존) - 가능하면 백엔드 errorCode로 바꾸는 게 더 좋음
-//     const data = error.response.data;
-//     const isExpired =
-//       typeof data === "string" && data.includes("만료된 토큰");
+    // 만료 토큰 판별(문자열 의존) - 가능하면 백엔드 errorCode로 바꾸는 게 더 좋음
+    const data = error.response.data;
+    const isExpired = typeof data === "string" && data.includes("만료된 토큰");
 
-//     // 만료가 아닌 401은 바로 로그인
-//     if (!isExpired) {
-//       router.push({ path: "/login", query: { redirect: currentPath } });
-//       return Promise.reject(error);
-//     }
+    // 만료가 아닌 401은 그대로 반환
+    if (!isExpired) {
+      return Promise.reject(error);
+    }
 
-//     // 만료된 토큰 → refresh 후 원요청 1회 재시도
-//     originalRequest._retry = true;
+    // 만료된 토큰 → refresh 후 원요청 1회 재시도
+    originalRequest._retry = true;
 
-//     // refresh 중이면 큐로 대기했다가 refresh 완료 후 재시도
-//     if (isRefreshing) {
-//       try {
-//         await new Promise((resolve, reject) => {
-//           queue.push({ resolve, reject });
-//         });
-//         return api(originalRequest);
-//       } catch (e) {
-//         router.push({ path: "/login", query: { redirect: currentPath } });
-//         return Promise.reject(e);
-//       }
-//     }
+    // refresh 중이면 큐로 대기했다가 refresh 완료 후 재시도
+    if (isRefreshing) {
+      try {
+        await new Promise((resolve, reject) => {
+          queue.push({ resolve, reject });
+        });
+        return api(originalRequest);
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    }
 
-//     // refresh를 내가 대표로 수행
-//     try {
-//       await runRefresh();
-//       return api(originalRequest);
-//     } catch (e) {
-//       router.push({ path: "/login", query: { redirect: currentPath } });
-//       return Promise.reject(e);
-//     }
-//   }
-// );
+    // refresh를 내가 대표로 수행
+    try {
+      await runRefresh();
+      return api(originalRequest);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+);
 
 /* =========================
  * 상품 관련 API

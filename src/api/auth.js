@@ -121,6 +121,9 @@ export const authAPI = {
         const response = await api.get(`/points`)
         return response.data;
     },
+    getChargeHistory(paymentId) {
+        return api.get(`/payment-points/${paymentId}`)
+      },
 
     searchProducts: async ({
         keyword = '',
