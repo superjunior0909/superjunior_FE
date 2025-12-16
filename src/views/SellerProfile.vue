@@ -4,29 +4,7 @@
       <section class="seller-hero">
         <div class="hero-content">
           <div class="seller-info">
-            <h1>{{ seller.name }}</h1>
-            <p class="description">{{ seller.description }}</p>
-            <div class="badges">
-              <span v-for="badge in seller.badges" :key="badge" class="badge">{{ badge }}</span>
-            </div>
-          </div>
-          <div class="hero-stats">
-            <div class="stat">
-              <strong>{{ seller.rating }}</strong>
-              <span>평점</span>
-            </div>
-            <div class="stat">
-              <strong>{{ seller.followers.toLocaleString() }}</strong>
-              <span>팔로워</span>
-            </div>
-            <div class="stat">
-              <strong>{{ seller.totalSales.toLocaleString() }}</strong>
-              <span>누적 판매</span>
-            </div>
-            <div class="stat">
-              <strong>{{ seller.responseRate * 100 }}%</strong>
-              <span>응답률</span>
-            </div>
+            <h1>{{ seller.name || '판매자' }}</h1>
           </div>
         </div>
       </section>
@@ -44,35 +22,16 @@
             @click="goToProduct(product.id)"
           >
             <div class="product-image-wrapper">
-              <img :src="product.image || product.images?.[0]" :alt="product.title" />
+              <img :src="product.image" :alt="product.title" />
             </div>
             <div class="product-info">
               <p class="product-category">{{ product.category }}</p>
               <h3 class="product-title">{{ product.title }}</h3>
-              <p class="product-subtitle">{{ product.subtitle }}</p>
               <div class="product-price-info">
-                <span class="current-price">₩{{ product.currentPrice?.toLocaleString() || product.price?.toLocaleString() }}</span>
-                <span v-if="product.originalPrice" class="original-price">₩{{ product.originalPrice.toLocaleString() }}</span>
+                <span class="current-price">₩{{ product.currentPrice?.toLocaleString() }}</span>
               </div>
-              <div class="product-progress">
-                <div class="progress-info">
-                  <span class="progress-text">
-                    {{ product.currentCount || 0 }} / {{ product.targetCount }}명 참여
-                  </span>
-                  <span class="progress-percent">
-                    {{ Math.round(((product.currentCount || 0) / product.targetCount) * 100) }}%
-                  </span>
-                </div>
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill"
-                    :style="{ width: `${Math.min(((product.currentCount || 0) / product.targetCount) * 100, 100)}%` }"
-                  ></div>
-                </div>
-              </div>
-              <div class="product-meta">
-                <span class="rating">⭐ {{ product.rating || 0 }}</span>
-                <span class="reviews">리뷰 {{ product.reviewCount || 0 }}</span>
+              <div v-if="product.stock !== undefined" class="product-stock">
+                재고 {{ product.stock }}개
               </div>
             </div>
           </div>
@@ -94,52 +53,96 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { sellerProfile, getSellerProducts } from '@/data/products'
+import api from '@/api/axios'
 
-// const props = defineProps({
-//   sellerId: {
-//     type: String,
-//     default: null
-//   }
-// })
+const props = defineProps({
+  id: {
+    type: String,
+    required: true
+  }
+})
 
 const router = useRouter()
-const seller = ref({ ...sellerProfile })
+const seller = ref({ name: '' })
 const sellerProducts = ref([])
 
-const loadSellerInfo = () => {
-  // localStorage에서 저장된 판매자 정보 가져오기
-  const savedSeller = JSON.parse(localStorage.getItem('seller_profile') || 'null')
-  if (savedSeller) {
+// 더미 공지사항 데이터
+const notices = ref([
+  { id: 1, type: '공지', title: '신규 상품이 등록되었습니다', date: '2024-12-15' },
+  { id: 2, type: '안내', title: '배송 일정 안내', date: '2024-12-10' },
+  { id: 3, type: '이벤트', title: '할인 이벤트 진행 중', date: '2024-12-05' }
+])
+
+// 카테고리 한글 변환
+const categoryMap = {
+  'HOME': '생활 & 주방',
+  'FOOD': '식품 & 간식',
+  'HEALTH': '건강 & 헬스',
+  'BEAUTY': '뷰티',
+  'FASHION': '패션 & 의류',
+  'ELECTRONICS': '전자 & 디지털',
+  'KIDS': '유아 & 어린이',
+  'HOBBY': '취미',
+  'PET': '반려동물'
+}
+
+// 카테고리별 기본 이미지
+const categoryImages = {
+  'HOME': 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=400',
+  'FOOD': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+  'HEALTH': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
+  'BEAUTY': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400',
+  'FASHION': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400',
+  'ELECTRONICS': 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400',
+  'KIDS': 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400',
+  'HOBBY': 'https://images.unsplash.com/photo-1452857297128-d9c29adba80b?w=400',
+  'PET': 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=400'
+}
+
+const loadSellerInfo = async () => {
+  try {
+    const response = await api.get(`/sellers/${props.id}`)
+    const sellerData = response.data.data ?? response.data
     seller.value = {
-      ...seller.value,
-      ...savedSeller,
-      // 통계 정보는 기본값 유지
-      rating: seller.value.rating,
-      followers: seller.value.followers,
-      totalSales: seller.value.totalSales,
-      responseRate: seller.value.responseRate
+      name: sellerData.name || sellerData.businessName || '판매자'
     }
+  } catch (error) {
+    console.error('판매자 정보 조회 실패:', error)
+    seller.value = { name: '판매자' }
   }
 }
 
-const loadProducts = () => {
-  // 판매자 이름으로 상품 가져오기
-  const sellerName = seller.value.name
-  const sampleProducts = getSellerProducts(sellerName)
-  
-  // localStorage에서 등록한 상품도 가져오기
-  const registeredProducts = JSON.parse(localStorage.getItem('seller_products') || '[]')
-  
-  // 두 목록 합치기 (중복 제거)
-  const allProducts = [...sampleProducts, ...registeredProducts]
-  const uniqueProducts = allProducts.filter((product, index, self) =>
-    index === self.findIndex(p => p.id === product.id)
-  )
-  
-  sellerProducts.value = uniqueProducts.slice(0, 12) // 최대 12개만 표시
+const loadProducts = async () => {
+  try {
+    const response = await api.get(`/products`, {
+      params: { sellerId: props.id }
+    })
+    const productsData = response.data.data ?? response.data
+    const productsList = Array.isArray(productsData) ? productsData : productsData.content ?? []
+
+    sellerProducts.value = productsList.map(product => {
+      const categoryKorean = categoryMap[product.category] || product.category || '기타'
+      let productImage = product.imageUrl || product.image
+      if (!productImage || productImage.trim() === '') {
+        productImage = categoryImages[product.category] || categoryImages['PET']
+      }
+
+      return {
+        id: product.productId,
+        title: product.name,
+        category: categoryKorean,
+        price: product.price,
+        currentPrice: product.price,
+        image: productImage,
+        stock: product.stock
+      }
+    })
+  } catch (error) {
+    console.error('판매자 상품 목록 조회 실패:', error)
+    sellerProducts.value = []
+  }
 }
 
 const goToProduct = (id) => {
@@ -150,6 +153,14 @@ onMounted(() => {
   loadSellerInfo()
   loadProducts()
 })
+
+watch(
+  () => props.id,
+  () => {
+    loadSellerInfo()
+    loadProducts()
+  }
+)
 </script>
 
 <style scoped>
@@ -184,58 +195,7 @@ onMounted(() => {
   font-size: 32px;
   font-weight: 700;
   color: #ffffff;
-  margin: 0 0 12px 0;
-}
-
-.description {
-  color: #e0e0e0;
-  font-size: 16px;
-  line-height: 1.6;
-  margin: 0 0 16px 0;
-}
-
-.badges {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.badge {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  padding: 8px 14px;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.hero-stats {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.stat {
-  flex: 1;
-  min-width: 120px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 16px;
-  text-align: center;
-}
-
-.stat strong {
-  display: block;
-  font-size: 26px;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.stat span {
-  display: block;
-  font-size: 14px;
-  color: #a0a0a0;
-  margin-top: 4px;
+  margin: 0;
 }
 
 .seller-products-section,
@@ -313,17 +273,11 @@ onMounted(() => {
   line-height: 1.4;
 }
 
-.product-subtitle {
-  font-size: 13px;
-  color: #a0a0a0;
-  margin: 0;
-  line-height: 1.4;
-}
-
 .product-price-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .current-price {
@@ -332,56 +286,10 @@ onMounted(() => {
   color: #ffffff;
 }
 
-.original-price {
+.product-stock {
   font-size: 13px;
-  color: #666;
-  text-decoration: line-through;
-}
-
-.product-progress {
-  margin-top: 8px;
-}
-
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.progress-text {
-  font-size: 12px;
-  color: #e0e0e0;
-}
-
-.progress-percent {
-  font-size: 12px;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.progress-bar {
-  height: 6px;
-  background: #0f0f0f;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #ffffff;
-  border-radius: inherit;
-  transition: width 0.3s;
-}
-
-.product-meta {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
   color: #a0a0a0;
-}
-
-.rating {
-  color: #ffffff;
+  margin-top: 8px;
 }
 
 .notice-list {
@@ -430,8 +338,8 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .hero-stats {
-    flex-direction: column;
+  .seller-info h1 {
+    font-size: 24px;
   }
 }
 </style>
