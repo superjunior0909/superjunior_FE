@@ -879,8 +879,9 @@ const loadOrders = async (page = 0) => {
     })
 
     orderHistory.value = pageData.content
+
     orderPageInfo.value = {
-      currentPage: pageData.number,
+      currentPage: page, // ✅ 여기!!
       totalPages: pageData.totalPages,
       totalElements: pageData.totalElements,
       size: pageData.size
@@ -892,6 +893,7 @@ const loadOrders = async (page = 0) => {
     loadingOrders.value = false
   }
 }
+
 
 const closeOrderDetailModal = () => {
   showOrderDetailModal.value = false
