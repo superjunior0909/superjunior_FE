@@ -124,14 +124,21 @@ const loadProducts = async () => {
     }
 
     sellerProducts.value = productsList.map(purchase => {
+      console.log('원본 purchase 객체:', purchase)
+      console.log('purchase의 모든 키:', Object.keys(purchase))
+
       const categoryKorean = categoryMap[purchase.category] || purchase.category || '기타'
       let purchaseImage = purchase.imageUrl || purchase.image
       if (!purchaseImage || purchaseImage.trim() === '') {
         purchaseImage = categoryImages[purchase.category] || categoryImages['PET']
       }
 
+      // 여러 가능한 ID 필드명 시도
+      const purchaseId = purchase.purchaseId || purchase.id || purchase._id || purchase.groupPurchaseId
+      console.log('추출한 ID:', purchaseId)
+
       const mappedProduct = {
-        id: purchase.purchaseId || purchase.id,
+        id: purchaseId,
         title: purchase.title || purchase.name,
         category: categoryKorean,
         price: purchase.targetPrice || purchase.price,
