@@ -122,7 +122,7 @@ export const authAPI = {
         return response.data;
     },
     getChargeHistory(paymentId) {
-        return api.get(`/payment-points/${paymentId}`)
+        return api.get(`/payments/${paymentId}`)
       },
 
     searchProducts: async ({
