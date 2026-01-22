@@ -64,7 +64,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import api from '@/api/axios'
+import { authApi } from '@/api/axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -84,7 +84,7 @@ const handleLogin = async () => {
   
   try {
     // 🔥 Cookie 기반 인증이면 토큰 저장 불필요
-    const response = await api.post('/auth/login', {
+    const response = await authApi.post('/auth/login', {
       email: form.value.email,
       password: form.value.password,
     })

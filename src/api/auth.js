@@ -1,4 +1,4 @@
-import api from './axios.js'
+import api, { authApi } from './axios.js'
 export const authAPI = {
     // 이메일 인증 코드
     sendVerificationEmail: async(email) => {
@@ -27,7 +27,7 @@ export const authAPI = {
     },
     // 로그인 (별도 인증 컨트롤러에 있을 것으로 추정)
     login: async(email, password) => {
-        const response = await api.post(`/auth/login`,{
+        const response = await authApi.post(`/auth/login`,{
             email,
             password
         })
@@ -35,7 +35,7 @@ export const authAPI = {
     },
     // 로그아웃
     logout: async() => {
-        const response = await api.post(`/auth/logout`)
+        const response = await authApi.get(`/auth/logout`)
         return response.data;
     },
     // 프로필 조회
