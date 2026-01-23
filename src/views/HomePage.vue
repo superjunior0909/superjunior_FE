@@ -256,7 +256,10 @@
     <section class="section">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">맞춤형 추천</h2>
+          <h2 class="section-title">
+            맞춤형 추천
+            <span v-if="recommendedReason" class="section-reason">{{ recommendedReason }}</span>
+          </h2>
           <router-link :to="{ name: 'products', query: { section: 'recommend' } }" class="view-all">전체보기 →</router-link>
         </div>
         <div class="products-grid">
@@ -350,6 +353,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { groupPurchaseApi, cartApi } from '@/api/axios'
+import {authAPI as auth} from "@/api/auth";
 
 const router = useRouter()
 
@@ -546,15 +550,19 @@ const fetchDiscountProducts = async () => {
 //맞춤형 추천
 // todo api 수정 필요
 const recommendedProducts = ref([])
+const recommendedReason = ref('')
 
 const fetchRecommendedProducts = async () => {
-  const res = await groupPurchaseApi.searchGroupPurchases({
+  const res = await auth.searchAIRecommandPurchases({
     status: 'OPEN',
     sort: 'currentQuantity,desc',
     size: 3
   })
 
-  return res.data.data.content
+  return {
+    items: res?.groupPurchase ?? [],
+    reason: res?.reason ?? ''
+  }
 }
 
 const onSearch = () => {
@@ -607,23 +615,30 @@ onMounted(async () => {
 
   // 공동구매 데이터 로드
   try {
-    const [popularDocs, endingDocs, discountDocs, recommendDocs] = await Promise.all([
+    const [popularDocs, endingDocs, discountDocs] = await Promise.all([
       fetchPopularProducts(),
       fetchEndingProducts(),
-      fetchDiscountProducts(),
-      fetchRecommendedProducts()
+      fetchDiscountProducts()
     ])
 
     popularProducts.value = popularDocs.map(mapToProductCard)
     endingProducts.value = endingDocs.map(mapToProductCard)
     discountProducts.value = discountDocs.map(mapToProductCard)
-    recommendedProducts.value = recommendDocs.map(mapToProductCard)
   } catch (e) {
     console.error('메인 페이지 상품 조회 실패', e)
     popularProducts.value = []
     endingProducts.value = []
     discountProducts.value = []
+  }
+
+  try {
+    const recommendDocs = await fetchRecommendedProducts()
+    recommendedProducts.value = recommendDocs.items.map(mapToProductCard)
+    recommendedReason.value = recommendDocs.reason
+  } catch (e) {
+    console.error('추천 상품 조회 실패', e)
     recommendedProducts.value = []
+    recommendedReason.value = ''
   }
 })
 
@@ -769,6 +784,13 @@ onBeforeUnmount(() => {
   font-weight: 700;
   margin: 0;
   color: #ffffff;
+}
+
+.section-reason {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #999999;
 }
 
 .view-all {

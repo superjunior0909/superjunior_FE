@@ -21,6 +21,13 @@ module.exports = defineConfig({
         cookieDomainRewrite: "", // 쿠키 도메인 재작성
         secure: false, // HTTPS가 아닌 경우 false
       }, 
+      "/auth": {
+        target: API_BASE_URL,
+        changeOrigin: true,
+        logLevel: "debug",
+        cookieDomainRewrite: "",
+        secure: false,
+      },
       "/swagger-ui.html": {
         target: "http://localhost:3001", 
         changeOrigin: true,

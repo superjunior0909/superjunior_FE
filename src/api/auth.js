@@ -167,5 +167,19 @@ export const authAPI = {
         })
 
         return response.data.data
-      }
+      },
+
+    searchAIRecommandPurchases: async ({
+               keyword = '',
+               category = ''
+           } = {}) => {
+        const response = await api.get('/ai/recommandations', {
+            params: {
+                keyword,
+                category
+            }
+        })
+
+        return response.data.data
+    }
 }
