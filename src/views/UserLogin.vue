@@ -65,6 +65,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authApi } from '@/api/axios'
+import { authAPI } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -121,7 +122,7 @@ const handleLogin = async () => {
       localStorage.setItem('access_token', 'authenticated')
     }
     
-    // 사용자 정보 저장
+    // 사용자 정보 저장 (로그인 응답에 없을 수 있어 프로필 API로 보강)
     if (response.data.email) {
       localStorage.setItem('user_email', response.data.email)
     }
@@ -130,6 +131,28 @@ const handleLogin = async () => {
     }
     if (response.data.memberId) {
       localStorage.setItem('member_id', response.data.memberId)
+    }
+
+    try {
+      const profile = await authAPI.getProfile()
+      const profileData = profile?.data || profile
+      if (profileData?.memberId) {
+        localStorage.setItem('member_id', profileData.memberId)
+      }
+      if (profileData?.email) {
+        localStorage.setItem('user_email', profileData.email)
+      }
+      if (profileData?.role) {
+        localStorage.setItem('user_role', profileData.role)
+      }
+      if (profileData?.name) {
+        localStorage.setItem('user_name', profileData.name)
+      }
+      if (profileData) {
+        localStorage.setItem('user_data', JSON.stringify(profileData))
+      }
+    } catch (profileError) {
+      console.warn('프로필 조회 실패:', profileError)
     }
     
     // 로그인 상태 변경 이벤트 발생 (SiteHeader가 즉시 반영하도록)
