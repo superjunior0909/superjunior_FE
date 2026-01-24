@@ -253,7 +253,7 @@
     </section>
 
     <!-- 맞춤형 추천 -->
-    <section class="section">
+    <section v-if="recommendedProducts.length" class="section">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">
