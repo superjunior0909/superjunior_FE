@@ -1390,23 +1390,23 @@ const mapHistoryItem = (item, index) => {
   const paidPoint = Number(item.paidPoint ?? 0)
   const bonusPoint = Number(item.bonusPoint ?? 0)
   const rawAmount = Number(item.amount ?? item.point ?? (paidPoint + bonusPoint))
-  const isCredit = status === 'CHARGED' || status === 'BONUS' || rawAmount > 0
-  const amount = Math.abs(rawAmount)
-
-  const statusTextMap = {
-    CHARGED: '충전',
-    BONUS: '보너스',
-    DEDUCTED: '차감',
-    REFUNDED: '환불',
-    CANCELLED: '취소'
+  const statusConfigMap = {
+    CHARGED: { text: '충전', type: 'credit' },
+    BONUS_EARNED: { text: '보너스', type: 'credit' },
+    RETURNED: { text: '환불', type: 'credit' },
+    USED: { text: '사용', type: 'debit' },
+    TRANSFERRED: { text: '출금', type: 'debit' }
   }
+  const statusConfig = statusConfigMap[status]
+  const type = statusConfig?.type || (rawAmount >= 0 ? 'credit' : 'debit')
+  const amount = Math.abs(paidPoint + bonusPoint || rawAmount)
 
   return {
     id: item.id || item.historyId || item.pointHistoryId || item.transactionId || `${item.createdAt || 'history'}-${index}`,
     date: formatDate(item.createdAt || item.date || item.updatedAt),
     amount,
-    type: isCredit ? 'credit' : 'debit',
-    statusText: statusTextMap[status] || (isCredit ? '충전' : '차감')
+    type,
+    statusText: statusConfig?.text || (type === 'credit' ? '충전' : '차감')
   }
 }
 
@@ -1419,6 +1419,7 @@ const fetchPointHistories = async () => {
       sort: 'createdAt,desc'
     })
     const list = normalizeHistories(response)
+    console.log(list)
     pointHistories.value = list.map(mapHistoryItem)
   } catch (error) {
     console.error('포인트 이력 조회 실패:', error)
