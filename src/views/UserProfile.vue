@@ -74,11 +74,25 @@
             <div v-if="isSeller" class="nav-section">
               <h4 class="nav-section-title">판매자</h4>
               <button
-                class="nav-item"
-                @click="goToSellerPage"
+                :class="['nav-item', { active: activeMenu === 'seller-center' }]"
+                @click="openSellerMenu('seller-center')"
               >
                 <span class="nav-icon">📊</span>
-                <span>판매자 대시보드</span>
+                <span>판매자 센터</span>
+              </button>
+              <button
+                :class="['nav-item', { active: activeMenu === 'seller-sales' }]"
+                @click="openSellerMenu('seller-sales')"
+              >
+                <span class="nav-icon">🛒</span>
+                <span>판매 목록</span>
+              </button>
+              <button
+                :class="['nav-item', { active: activeMenu === 'seller-settlement' }]"
+                @click="openSellerMenu('seller-settlement')"
+              >
+                <span class="nav-icon">💳</span>
+                <span>정산 현황</span>
               </button>
             </div>
 
@@ -596,6 +610,332 @@
             </div>
           </section>
 
+          <!-- 판매자 센터 -->
+          <section
+            v-if="isSeller && activeMenu === 'seller-center'"
+            class="content-section seller-center"
+          >
+            <h2 class="section-title">판매자 센터</h2>
+
+            <div class="seller-center-grid">
+              <div class="seller-card seller-info-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">은행</p>
+                    <h3>{{ sellerAccountInfo.bank || '은행 미지정' }}</h3>
+                  </div>
+                  <div class="edit-actions">
+                    <button
+                      v-if="!isEditingSellerInfo"
+                      class="link-button"
+                      @click="startEditSellerInfo"
+                    >
+                      정보 수정
+                    </button>
+                    <button
+                      v-else
+                      class="link-button"
+                      @click="cancelEditSellerInfo"
+                    >
+                      수정 취소
+                    </button>
+                  </div>
+                </div>
+                <div v-if="isEditingSellerInfo" class="seller-edit-form">
+                  <form @submit.prevent="saveSellerInfo">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>은행</label>
+                        <select v-model="sellerInfoForm.bankCode" required>
+                          <option value="">은행을 선택하세요</option>
+                          <option
+                            v-for="bank in bankList"
+                            :key="bank.code"
+                            :value="bank.code"
+                          >
+                            {{ bank.name }}
+                          </option>
+                        </select>
+                        <p v-if="sellerInfoErrors.bankCode" class="form-error">{{ sellerInfoErrors.bankCode }}</p>
+                      </div>
+                      <div class="form-group">
+                        <label>계좌번호</label>
+                        <input
+                          v-model="sellerInfoForm.accountNumber"
+                          type="text"
+                          placeholder="계좌번호를 입력하세요"
+                          required
+                        />
+                        <p v-if="sellerInfoErrors.accountNumber" class="form-error">{{ sellerInfoErrors.accountNumber }}</p>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>예금주</label>
+                        <input
+                          v-model="sellerInfoForm.accountHolder"
+                          type="text"
+                          placeholder="예금주명을 입력하세요"
+                          required
+                        />
+                        <p v-if="sellerInfoErrors.accountHolder" class="form-error">{{ sellerInfoErrors.accountHolder }}</p>
+                      </div>
+                      <div class="form-group">
+                        <label>사업자 등록번호</label>
+                        <input
+                          v-model="sellerInfoForm.businessRegistrationNumber"
+                          type="text"
+                          placeholder="000-00-00000"
+                          required
+                        />
+                        <p v-if="sellerInfoErrors.businessRegistrationNumber" class="form-error">{{ sellerInfoErrors.businessRegistrationNumber }}</p>
+                      </div>
+                    </div>
+                    <div class="seller-edit-actions">
+                      <button type="button" class="btn btn-outline btn-sm" @click="cancelEditSellerInfo">
+                        취소
+                      </button>
+                      <button type="submit" class="btn btn-primary btn-sm" :disabled="savingSellerInfo">
+                        {{ savingSellerInfo ? '저장 중...' : '저장하기' }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                <dl v-else class="info-list">
+                  <div class="info-row">
+                    <dt>계좌번호</dt>
+                    <dd>{{ sellerAccountInfo.accountNumber || '-' }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>예금주</dt>
+                    <dd>{{ sellerAccountInfo.owner || '-' }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>사업자 등록번호</dt>
+                    <dd>{{ sellerAccountInfo.businessNumber || '-' }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>전화번호</dt>
+                    <dd>{{ sellerAccountInfo.phone || '-' }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>이메일</dt>
+                    <dd>{{ sellerAccountInfo.email || '-' }}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="seller-card order-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">주문 목록</p>
+                    <h3>실시간 주문 현황</h3>
+                  </div>
+                  <button class="link-button">
+                    새로고침
+                  </button>
+                </div>
+                <div class="empty-state-lg">
+                  <p>주문 내역이 없습니다</p>
+                </div>
+              </div>
+
+              <div class="seller-card inquiry-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">고객 문의 현황</p>
+                    <h3>최근 문의</h3>
+                  </div>
+                </div>
+                <ul class="inquiry-list">
+                  <li v-for="inquiry in sellerInquiries" :key="inquiry.question">
+                    <p class="question">Q. {{ inquiry.question }}</p>
+                    <p class="answer">A. {{ inquiry.answer }}</p>
+                    <span class="status">{{ inquiry.status }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="seller-card notice-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">공지 사항</p>
+                    <h3>업데이트 소식</h3>
+                  </div>
+                </div>
+                <ul class="notice-list">
+                  <li v-for="notice in sellerNotices" :key="notice.title" class="notice-item">
+                    <div class="notice-meta">
+                      <span class="badge">{{ notice.category }}</span>
+                      <span class="date">{{ notice.date }}</span>
+                    </div>
+                    <p class="notice-title">{{ notice.title }}</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- 판매 목록 -->
+          <section
+            v-if="isSeller && activeMenu === 'seller-sales'"
+            class="content-section seller-center seller-sales-section"
+          >
+            <h2 class="section-title">판매 목록</h2>
+
+            <div class="seller-sales-hero">
+              <div>
+                <h3>내 상품과 공동구매를 한 눈에</h3>
+                <p>카테고리별로 검색하고 새로운 판매를 빠르게 시작하세요.</p>
+              </div>
+              <div class="hero-actions">
+                <button class="btn btn-primary" @click="goToProductRegister">+ 상품 등록</button>
+                <button class="btn btn-outline" @click="goToGroupPurchaseManage">+ 내 공동구매 등록</button>
+              </div>
+            </div>
+
+            <div class="sales-stats-grid">
+              <div
+                v-for="stat in sellerSalesStats"
+                :key="stat.label"
+                class="sales-stat-card"
+              >
+                <p class="stat-label">{{ stat.label }}</p>
+                <p class="stat-value">{{ stat.value }}</p>
+                <p class="stat-subtext">{{ stat.subtext }}</p>
+              </div>
+            </div>
+
+            <div class="seller-sales-grid">
+              <div class="seller-card product-card">
+                <div class="card-header align-start">
+                  <div>
+                    <h3>내 상품 목록</h3>
+                    <p class="card-subtitle">
+                      상세 검색과 관리 기능은 전체 보기 페이지에서 이용할 수 있습니다.
+                    </p>
+                  </div>
+                  <button class="link-button" @click="goToSellerProducts">
+                    전체 상품 보기 →
+                  </button>
+                </div>
+                <div class="seller-mini-section">
+                  <div v-if="sellerProductsLoading" class="mini-loading">
+                    <p>상품 정보를 불러오는 중...</p>
+                  </div>
+                  <div v-else-if="sellerProductsPreview.length === 0" class="mini-empty">
+                    <p>등록된 상품이 없습니다</p>
+                  </div>
+                  <div v-else class="seller-mini-list">
+                    <div class="seller-mini-hero">
+                      <div class="hero-info">
+                        <p class="hero-title">{{ sellerProductsPreview[0].title }}</p>
+                        <span class="hero-sub">{{ sellerProductsPreview[0].category }}</span>
+                      </div>
+                      <div class="hero-meta">
+                        <span class="hero-price">₩{{ formatPrice(sellerProductsPreview[0].price) }}</span>
+                        <span class="hero-updated">{{ formatDateShort(sellerProductsPreview[0].updatedAt) }}</span>
+                      </div>
+                    </div>
+                    <div
+                      v-for="product in sellerProductsPreview.slice(1)"
+                      :key="product.id"
+                      class="seller-mini-item"
+                    >
+                      <div class="mini-info">
+                        <p class="mini-title">{{ product.title }}</p>
+                        <span class="mini-sub">{{ product.category }}</span>
+                      </div>
+                      <div class="mini-meta">
+                        <span class="mini-price">₩{{ formatPrice(product.price) }}</span>
+                        <span class="mini-updated">{{ formatDateShort(product.updatedAt) }}</span>
+                      </div>
+                    </div>
+                    <p v-if="sellerProductsAll.length > sellerProductsPreview.length" class="mini-extra">
+                      외 {{ sellerProductsAll.length - sellerProductsPreview.length }}건이 더 있습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="seller-card gp-card">
+                <div class="card-header align-start">
+                  <div>
+                    <h3>내 공동구매 목록</h3>
+                    <p class="card-subtitle">
+                      상세 검색과 관리 기능은 전체 보기 페이지에서 이용할 수 있습니다.
+                    </p>
+                  </div>
+                  <button class="link-button" @click="goToGroupPurchaseManage">
+                    공동구매 전체 보기 →
+                  </button>
+                </div>
+                <div class="seller-mini-section">
+                  <div v-if="sellerGroupPurchasesLoading" class="mini-loading">
+                    <p>공동구매 정보를 불러오는 중...</p>
+                  </div>
+                  <div v-else-if="sellerGroupPurchasesPreview.length === 0" class="mini-empty">
+                    <p>진행 중인 공동구매가 없습니다</p>
+                  </div>
+                  <div v-else class="seller-mini-list">
+                    <div class="seller-mini-hero gp">
+                      <div class="hero-info">
+                        <p class="hero-title">{{ sellerGroupPurchasesPreview[0].title }}</p>
+                        <span class="hero-sub">{{ sellerGroupPurchasesPreview[0].category }}</span>
+                      </div>
+                      <div class="hero-meta">
+                        <span class="hero-price">₩{{ formatPrice(sellerGroupPurchasesPreview[0].discountPrice) }}</span>
+                        <span class="hero-progress">{{ sellerGroupPurchasesPreview[0].currentCount }}/{{ sellerGroupPurchasesPreview[0].maxQuantity }}명</span>
+                      </div>
+                    </div>
+                    <div
+                      v-for="gp in sellerGroupPurchasesPreview.slice(1)"
+                      :key="gp.id"
+                      class="seller-mini-item"
+                    >
+                      <div class="mini-info">
+                        <p class="mini-title">{{ gp.title }}</p>
+                        <span class="mini-sub">{{ gp.category }}</span>
+                      </div>
+                      <div class="mini-meta">
+                        <span class="mini-price">₩{{ formatPrice(gp.discountPrice) }}</span>
+                        <span class="mini-progress">{{ gp.currentCount }}/{{ gp.maxQuantity }}명</span>
+                      </div>
+                    </div>
+                    <p v-if="sellerGroupPurchasesAll.length > sellerGroupPurchasesPreview.length" class="mini-extra">
+                      외 {{ sellerGroupPurchasesAll.length - sellerGroupPurchasesPreview.length }}건이 더 있습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 정산 현황 -->
+          <section
+            v-if="isSeller && activeMenu === 'seller-settlement'"
+            class="content-section seller-center"
+          >
+            <h2 class="section-title">정산 현황</h2>
+
+            <div class="seller-center-grid">
+              <div class="seller-card settlement-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">정산 내역</p>
+                    <h3>정산 현황</h3>
+                  </div>
+                  <button class="link-button" @click="goToSellerSettlement">
+                    전체보기 →
+                  </button>
+                </div>
+                <div class="empty-state-lg">
+                  <p>정산 내역이 없습니다</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>
@@ -898,20 +1238,325 @@ const router = useRouter()
 // 활성 메뉴 (기본값: 프로필)
 const activeMenu = ref('profile')
 
+// 판매자 센터 데이터
+const sellerAccountInfo = ref({
+  bank: '',
+  bankCode: '',
+  accountNumber: '',
+  owner: '',
+  businessNumber: '',
+  phone: '',
+  email: ''
+})
+
+const sellerProductsAll = ref([])
+const sellerGroupPurchasesAll = ref([])
+const sellerProductsLoading = ref(false)
+const sellerGroupPurchasesLoading = ref(false)
+const sellerProductsLoaded = ref(false)
+const sellerGroupPurchasesLoaded = ref(false)
+const isEditingSellerInfo = ref(false)
+const savingSellerInfo = ref(false)
+const sellerInfoErrors = ref({
+  bankCode: '',
+  accountNumber: '',
+  accountHolder: '',
+  businessRegistrationNumber: ''
+})
+const sellerInfoForm = ref({
+  bankCode: '',
+  accountNumber: '',
+  accountHolder: '',
+  businessRegistrationNumber: ''
+})
+
+const formatCount = (value) => Number(value || 0).toLocaleString()
+
+const sellerGroupPurchasesOpenCount = computed(() => {
+  return sellerGroupPurchasesAll.value.filter(gp => (gp.status || '').toUpperCase() === 'OPEN').length
+})
+
+const sellerSalesStats = computed(() => [
+  { label: '등록된 상품', value: formatCount(sellerProductsAll.value.length), subtext: '현재 등록된 상품 수' },
+  { label: '진행 중 공동구매', value: formatCount(sellerGroupPurchasesOpenCount.value), subtext: 'OPEN 상태 공동구매' },
+  { label: '전체 공동구매', value: formatCount(sellerGroupPurchasesAll.value.length), subtext: '누적 등록 공동구매' }
+])
+
+const sellerProductsPreview = computed(() => sellerProductsAll.value.slice(0, 3))
+const sellerGroupPurchasesPreview = computed(() => sellerGroupPurchasesAll.value.slice(0, 3))
+
+const sellerInquiries = ref([
+  {
+    question: '아이폰 색상 변경 가능한가요?',
+    answer: '네, 공동구매 종료 전까지 색상 변경 가능합니다. 채팅 또는 문의 남겨주세요.',
+    status: '완료'
+  },
+  {
+    question: '워치 밴드 추가 구매 가능한가요?',
+    answer: '추가 구성으로 실리콘 밴드(₩19,000) 구매 옵션을 열어두었습니다.',
+    status: '완료'
+  },
+  {
+    question: '배송지 변경은 언제까지 되나요?',
+    answer: '결제 후 24시간 이내에만 가능합니다. 배송 탭의 “배송지 변경” 버튼을 이용해주세요.',
+    status: '완료'
+  }
+])
+
+const sellerNotices = ref([
+  {
+    category: '배송',
+    title: '12월 배송 일정 안내',
+    date: '2025-12-01'
+  },
+  {
+    category: '이벤트',
+    title: '신규 공동구매 오픈 예고 (이어폰/태블릿)',
+    date: '2025-11-28'
+  },
+  {
+    category: '공지',
+    title: 'A/S 접수 방법 간소화 안내',
+    date: '상시'
+  }
+])
+
+const bankList = [
+  { code: '002', name: 'KDB산업은행' },
+  { code: '003', name: 'IBK기업은행' },
+  { code: '004', name: 'KB국민은행' },
+  { code: '005', name: 'KEB하나은행' },
+  { code: '007', name: '수협은행' },
+  { code: '011', name: 'NH농협은행' },
+  { code: '020', name: '우리은행' },
+  { code: '023', name: 'SC은행' },
+  { code: '027', name: '씨티은행' },
+  { code: '031', name: '대구은행' },
+  { code: '032', name: '부산은행' },
+  { code: '034', name: '광주은행' },
+  { code: '035', name: '제주은행' },
+  { code: '037', name: '전북은행' },
+  { code: '039', name: '경남은행' },
+  { code: '045', name: 'MG새마을금고' },
+  { code: '048', name: '신협' },
+  { code: '050', name: '저축은행' },
+  { code: '071', name: '우체국' },
+  { code: '088', name: '신한은행' },
+  { code: '089', name: '케이뱅크' },
+  { code: '090', name: '카카오뱅크' },
+  { code: '092', name: '토스뱅크' }
+]
+
+const sellerProductCategoryMap = {
+  HOME: '생활 & 주방',
+  FOOD: '식품 & 간식',
+  HEALTH: '건강 & 헬스',
+  BEAUTY: '뷰티',
+  FASHION: '패션 & 의류',
+  ELECTRONICS: '전자 & 디지털',
+  KIDS: '유아 & 어린이',
+  HOBBY: '취미',
+  PET: '반려동물'
+}
+
+const sellerGroupCategoryMap = sellerProductCategoryMap
+
+const loadSellerAccountInfo = async () => {
+  try {
+    const memberId = localStorage.getItem('member_id')
+    if (!memberId) return
+    const response = await authAPI.getSellerInfo(memberId)
+    const raw = response?.data || response
+    sellerAccountInfo.value = {
+      bank: bankList.find(bank => bank.code === raw.bankCode)?.name || raw.bankName || raw.bank || '은행 미지정',
+      bankCode: raw.bankCode || '',
+      accountNumber: raw.accountNumber || '-',
+      owner: raw.accountHolder || raw.owner || raw.name || '-',
+      businessNumber: raw.businessRegistrationNumber || raw.businessNumber || '-',
+      phone: raw.phoneNumber || raw.phone || '-',
+      email: raw.email || raw.contactEmail || localStorage.getItem('user_email') || '-'
+    }
+    sellerInfoForm.value = {
+      bankCode: raw.bankCode || '',
+      accountNumber: raw.accountNumber || '',
+      accountHolder: raw.accountHolder || raw.owner || raw.name || '',
+      businessRegistrationNumber: raw.businessRegistrationNumber || raw.businessNumber || ''
+    }
+  } catch (error) {
+    console.error('판매자 정보 로드 실패:', error)
+  }
+}
+
+const loadSellerProductsSummary = async () => {
+  if (sellerProductsLoading.value) return
+  sellerProductsLoading.value = true
+  try {
+    const response = await productApi.getProducts({ size: 200 })
+    const data = response.data?.data || response.data
+    const list = Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : []
+    sellerProductsAll.value = list.map(product => {
+      const categoryKey = product.category || product.categoryCode
+      return {
+        id: product.productId || product.id,
+        title: product.name || product.title || '상품명 미확인',
+        category: sellerProductCategoryMap[categoryKey] || categoryKey || '기타',
+        rawCategory: categoryKey,
+        price: product.price || product.currentPrice || 0,
+        updatedAt: product.updatedAt || product.modifiedAt || product.createdAt,
+        status: product.status || '판매중'
+      }
+    })
+  } catch (error) {
+    console.error('판매자 상품 요약 로드 실패:', error)
+  } finally {
+    sellerProductsLoading.value = false
+    sellerProductsLoaded.value = true
+  }
+}
+
+const loadSellerGroupPurchasesSummary = async () => {
+  if (sellerGroupPurchasesLoading.value) return
+  sellerGroupPurchasesLoading.value = true
+  try {
+    const response = await groupPurchaseApi.getMyGroupPurchases('createdAt,desc')
+    const raw = response.data?.data || response.data
+    const content = raw?.content || raw || []
+    sellerGroupPurchasesAll.value = content.map(gp => {
+      const categoryKey = gp.category
+      return {
+        id: gp.groupPurchaseId || gp.id,
+        title: gp.title || '공동구매명',
+        category: sellerGroupCategoryMap[categoryKey] || categoryKey || '기타',
+        rawCategory: categoryKey,
+        seller: gp.sellerName || '판매자',
+        discountPrice: gp.discountedPrice || gp.discountPrice || gp.price || 0,
+        originalPrice: gp.price || gp.originalPrice || gp.discountPrice || 0,
+        currentCount: gp.currentQuantity || gp.currentCount || 0,
+        maxQuantity: gp.maxQuantity || gp.maxCount || 0,
+        status: gp.status || 'OPEN',
+        startDate: gp.startDate,
+        endDate: gp.endDate
+      }
+    })
+  } catch (error) {
+    console.error('판매자 공동구매 요약 로드 실패:', error)
+  } finally {
+    sellerGroupPurchasesLoading.value = false
+    sellerGroupPurchasesLoaded.value = true
+  }
+}
+
+const clearSellerInfoErrors = () => {
+  sellerInfoErrors.value = {
+    bankCode: '',
+    accountNumber: '',
+    accountHolder: '',
+    businessRegistrationNumber: ''
+  }
+}
+
+const resetSellerInfoForm = () => {
+  sellerInfoForm.value = {
+    bankCode: sellerAccountInfo.value.bankCode || '',
+    accountNumber: sellerAccountInfo.value.accountNumber && sellerAccountInfo.value.accountNumber !== '-' ? sellerAccountInfo.value.accountNumber : '',
+    accountHolder: sellerAccountInfo.value.owner && sellerAccountInfo.value.owner !== '-' ? sellerAccountInfo.value.owner : '',
+    businessRegistrationNumber: sellerAccountInfo.value.businessNumber && sellerAccountInfo.value.businessNumber !== '-' ? sellerAccountInfo.value.businessNumber : ''
+  }
+  clearSellerInfoErrors()
+}
+
+const startEditSellerInfo = () => {
+  resetSellerInfoForm()
+  isEditingSellerInfo.value = true
+}
+
+const cancelEditSellerInfo = () => {
+  resetSellerInfoForm()
+  isEditingSellerInfo.value = false
+}
+
+const validateSellerInfo = () => {
+  clearSellerInfoErrors()
+  let valid = true
+  if (!sellerInfoForm.value.bankCode) {
+    sellerInfoErrors.value.bankCode = '은행을 선택하세요.'
+    valid = false
+  }
+  if (!sellerInfoForm.value.accountNumber) {
+    sellerInfoErrors.value.accountNumber = '계좌번호를 입력하세요.'
+    valid = false
+  } else if (!/^[0-9-]+$/.test(sellerInfoForm.value.accountNumber)) {
+    sellerInfoErrors.value.accountNumber = '계좌번호는 숫자와 하이픈만 입력 가능합니다.'
+    valid = false
+  }
+  if (!sellerInfoForm.value.accountHolder) {
+    sellerInfoErrors.value.accountHolder = '예금주명을 입력하세요.'
+    valid = false
+  }
+  if (!sellerInfoForm.value.businessRegistrationNumber) {
+    sellerInfoErrors.value.businessRegistrationNumber = '사업자 등록번호를 입력하세요.'
+    valid = false
+  }
+  return valid
+}
+
+const saveSellerInfo = async () => {
+  if (!validateSellerInfo()) return
+  savingSellerInfo.value = true
+  try {
+    await authAPI.updateSeller({
+      bankCode: sellerInfoForm.value.bankCode,
+      accountNumber: sellerInfoForm.value.accountNumber,
+      accountHolder: sellerInfoForm.value.accountHolder,
+      businessRegistrationNumber: sellerInfoForm.value.businessRegistrationNumber
+    })
+    await loadSellerAccountInfo()
+    isEditingSellerInfo.value = false
+    alert('판매자 정보가 수정되었습니다.')
+  } catch (error) {
+    console.error('판매자 정보 수정 실패:', error)
+    alert(error.response?.data?.message || '판매자 정보 수정에 실패했습니다.')
+  } finally {
+    savingSellerInfo.value = false
+  }
+}
+
+const ensureSellerSalesData = async () => {
+  if (!isSeller.value) return
+  await loadSellerAccountInfo()
+  if (!sellerProductsLoaded.value) {
+    await loadSellerProductsSummary()
+  }
+  if (!sellerGroupPurchasesLoaded.value) {
+    await loadSellerGroupPurchasesSummary()
+  }
+}
+
 // 메뉴 변경 시 데이터 로드
 watch(activeMenu, (newMenu) => {
   if (newMenu === 'address' && addressList.value.length === 0) {
     loadAddresses()
   }
+
   if (newMenu === 'cancelled-orders' && cancelledOrders.value.length === 0) {
     loadCancelledOrders()
   }
+
   if (newMenu === 'notification-settings' && notificationSettings.value.length === 0) {
     loadNotificationSettings()
   }
-  if (newMenu === 'point' && pointHistories.value.length === 0) {
-    fetchPointHistories()
+
+  // ✅ 판매자 메뉴 진입 시 판매자 센터 데이터 로드
+  if ((newMenu === 'seller-center' || newMenu === 'seller-sales' || newMenu === 'seller-settlement') && isSeller.value) {
+    ensureSellerSalesData()
+  }
+
+  // ✅ 포인트 메뉴 진입 시 포인트 잔액/이력 로드
+  if (newMenu === 'point') {
     fetchPointBalance()
+    if (pointHistories.value.length === 0) {
+      fetchPointHistories()
+    }
   }
 })
 
@@ -1169,8 +1814,24 @@ const loadCancelledOrders = async (page = 0) => {
   }
 }
 
-const goToSellerPage = () => {
-  router.push('/seller')
+const openSellerMenu = (menu) => {
+  activeMenu.value = menu
+}
+
+const goToSellerSettlement = () => {
+  router.push('/seller/settlement')
+}
+
+const goToSellerProducts = () => {
+  router.push('/seller/products')
+}
+
+const goToProductRegister = () => {
+  router.push('/seller/register/product-register')
+}
+
+const goToGroupPurchaseManage = () => {
+  router.push('/group-purchases')
 }
 
 const goToSellerApplication = () => {
@@ -1378,6 +2039,19 @@ const formatDate = (dateString) => {
   }
 }
 
+const formatDateShort = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      month: '2-digit',
+      day: '2-digit'
+    })
+  } catch (e) {
+    return dateString
+  }
+}
+
 const normalizeHistories = (response) => {
   const data = response?.data?.data || response?.data || response
   if (Array.isArray(data?.content)) return data.content
@@ -1390,6 +2064,7 @@ const mapHistoryItem = (item, index) => {
   const paidPoint = Number(item.paidPoint ?? 0)
   const bonusPoint = Number(item.bonusPoint ?? 0)
   const rawAmount = Number(item.amount ?? item.point ?? (paidPoint + bonusPoint))
+
   const statusConfigMap = {
     CHARGED: { text: '충전', type: 'credit' },
     BONUS_EARNED: { text: '보너스', type: 'credit' },
@@ -1397,12 +2072,20 @@ const mapHistoryItem = (item, index) => {
     USED: { text: '사용', type: 'debit' },
     TRANSFERRED: { text: '출금', type: 'debit' }
   }
+
   const statusConfig = statusConfigMap[status]
   const type = statusConfig?.type || (rawAmount >= 0 ? 'credit' : 'debit')
-  const amount = Math.abs(paidPoint + bonusPoint || rawAmount)
+
+  // ✅ amount 계산: paid+bonus 우선, 없으면 rawAmount
+  const amount = Math.abs((paidPoint + bonusPoint) || rawAmount || 0)
 
   return {
-    id: item.id || item.historyId || item.pointHistoryId || item.transactionId || `${item.createdAt || 'history'}-${index}`,
+    id:
+      item.id ||
+      item.historyId ||
+      item.pointHistoryId ||
+      item.transactionId ||
+      `${item.createdAt || 'history'}-${index}`,
     date: formatDate(item.createdAt || item.date || item.updatedAt),
     amount,
     type,
@@ -1418,8 +2101,8 @@ const fetchPointHistories = async () => {
       size: 20,
       sort: 'createdAt,desc'
     })
+
     const list = normalizeHistories(response)
-    console.log(list)
     pointHistories.value = list.map(mapHistoryItem)
   } catch (error) {
     console.error('포인트 이력 조회 실패:', error)
@@ -2025,6 +2708,440 @@ const saveNotificationSettings = async () => {
 
 .content-section {
   animation: fadeIn 0.3s ease-in;
+}
+
+/* 판매자 센터 */
+.seller-center-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.seller-sales-section .seller-sales-hero {
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.seller-sales-hero h3 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  color: #ffffff;
+}
+
+.seller-sales-hero p {
+  margin: 0;
+  color: #c2c2c2;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sales-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sales-stat-card {
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.stat-label {
+  margin: 0 0 8px 0;
+  color: #8e8e8e;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-subtext {
+  margin: 6px 0 0 0;
+  color: #a8a8a8;
+  font-size: 13px;
+}
+
+.seller-sales-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.seller-edit-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.seller-edit-form .form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.seller-edit-form .form-group {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seller-edit-form label {
+  font-size: 13px;
+  color: #c0c0c0;
+}
+
+.seller-edit-form input,
+.seller-edit-form select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #0f0f0f;
+  color: #ffffff;
+}
+
+.seller-edit-form .form-error {
+  color: #ff6b6b;
+  font-size: 12px;
+}
+
+.seller-edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.mini-loading {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  color: #bdbdbd;
+  font-size: 14px;
+}
+
+.seller-mini-section {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mini-empty {
+  text-align: center;
+  padding: 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #c0c0c0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.seller-mini-hero {
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.hero-sub {
+  font-size: 13px;
+  color: #a0a0a0;
+}
+
+.hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.hero-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.hero-progress,
+.hero-updated {
+  font-size: 13px;
+  color: #cfcfcf;
+}
+
+.seller-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.seller-mini-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.seller-mini-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.mini-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-title {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.mini-sub {
+  font-size: 13px;
+  color: #a0a0a0;
+}
+
+.mini-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+  color: #cfcfcf;
+}
+
+.mini-price {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.mini-progress {
+  font-size: 12px;
+  color: #a0a0a0;
+}
+
+.mini-extra {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: #9dbbff;
+}
+
+.seller-card {
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.card-header.align-start {
+  align-items: flex-start;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: #8a8a8a;
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #ffffff;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #9dbbff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 8px;
+}
+
+.info-row dt {
+  color: #888;
+  font-weight: 500;
+}
+
+.info-row dd {
+  margin: 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.empty-state,
+.empty-state-lg {
+  background: #0a0a0a;
+  border: 1px dashed #2a2a2a;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #aaaaaa;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-state-lg {
+  min-height: 180px;
+  justify-content: center;
+}
+
+.card-description {
+  margin: 8px 0 0 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  color: #c5c5c5;
+  font-size: 14px;
+  line-height: 1.4;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inquiry-list,
+.notice-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inquiry-list li {
+  background: #0f0f0f;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.question {
+  font-weight: 600;
+  margin: 0 0 6px 0;
+}
+
+.answer {
+  color: #bbbbbb;
+  margin: 0 0 8px 0;
+}
+
+.status {
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.notice-item {
+  background: #0f0f0f;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.notice-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #a0a0a0;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.notice-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 @keyframes fadeIn {
@@ -3765,5 +4882,3 @@ textarea:focus {
   }
 }
 </style>
-
-
