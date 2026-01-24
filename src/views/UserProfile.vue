@@ -642,44 +642,61 @@
           <!-- 판매 목록 -->
           <section
             v-if="isSeller && activeMenu === 'seller-sales'"
-            class="content-section seller-center"
+            class="content-section seller-center seller-sales-section"
           >
             <h2 class="section-title">판매 목록</h2>
 
-            <div class="seller-center-grid">
+            <div class="seller-sales-hero">
+              <div>
+                <h3>내 상품과 공동구매를 한 눈에</h3>
+                <p>카테고리별로 검색하고 새로운 판매를 빠르게 시작하세요.</p>
+              </div>
+              <div class="hero-actions">
+                <button class="btn btn-outline" @click="goToSellerProducts">전체 상품 보기</button>
+                <button class="btn btn-primary" @click="goToProductRegister">+ 새 상품 등록</button>
+              </div>
+            </div>
+
+            <div class="sales-stats-grid">
+              <div
+                v-for="stat in sellerSalesStats"
+                :key="stat.label"
+                class="sales-stat-card"
+              >
+                <p class="stat-label">{{ stat.label }}</p>
+                <p class="stat-value">{{ stat.value }}</p>
+                <p class="stat-subtext">{{ stat.subtext }}</p>
+              </div>
+            </div>
+
+            <div class="seller-sales-grid">
               <div class="seller-card product-card">
                 <div class="card-header align-start">
                   <div>
                     <p class="card-subtitle">내 상품 목록</p>
                     <h3>상품명을 검색하세요</h3>
                   </div>
-                  <div class="card-actions">
-                    <button class="btn btn-primary btn-sm" @click="goToProductRegister">
-                      + 상품 등록
-                    </button>
-                    <button class="link-button" @click="goToSellerProducts">
-                      전체 보기 →
-                    </button>
-                  </div>
+                  <button class="link-button" @click="goToSellerProducts">
+                    전체 보기 →
+                  </button>
                 </div>
                 <div class="filter-row">
-                  <select v-model="sellerProductCategory">
-                    <option value="all">전체 카테고리</option>
-                  </select>
-                  <input
-                    v-model="sellerProductKeyword"
-                    type="text"
-                    placeholder="상품명을 입력하세요"
-                  />
-                  <button class="btn btn-outline btn-sm">
+                  <div class="input-row">
+                    <select v-model="sellerProductCategory">
+                      <option value="all">전체 카테고리</option>
+                    </select>
+                    <input
+                      v-model="sellerProductKeyword"
+                      type="text"
+                      placeholder="상품명을 입력하세요"
+                    />
+                  </div>
+                  <button class="btn btn-outline btn-sm wide-btn">
                     검색
                   </button>
                 </div>
                 <div class="empty-state">
                   <p>등록된 상품이 없습니다</p>
-                  <button class="btn btn-outline btn-sm" @click="goToProductRegister">
-                    상품 등록하기
-                  </button>
                 </div>
               </div>
 
@@ -689,33 +706,27 @@
                     <p class="card-subtitle">공동 구매 목록</p>
                     <h3>공동구매명을 검색하세요</h3>
                   </div>
-                  <div class="card-actions">
-                    <button class="btn btn-primary btn-sm" @click="goToGroupPurchaseCreate">
-                      + 공동구매 등록
-                    </button>
-                    <button class="link-button" @click="goToGroupPurchaseManage">
-                      전체 보기 →
-                    </button>
-                  </div>
+                  <button class="link-button" @click="goToGroupPurchaseManage">
+                    전체 보기 →
+                  </button>
                 </div>
                 <div class="filter-row">
-                  <select v-model="sellerGroupPurchaseCategory">
-                    <option value="all">전체 카테고리</option>
-                  </select>
-                  <input
-                    v-model="sellerGroupPurchaseKeyword"
-                    type="text"
-                    placeholder="공동구매명을 입력하세요"
-                  />
-                  <button class="btn btn-outline btn-sm">
+                  <div class="input-row">
+                    <select v-model="sellerGroupPurchaseCategory">
+                      <option value="all">전체 카테고리</option>
+                    </select>
+                    <input
+                      v-model="sellerGroupPurchaseKeyword"
+                      type="text"
+                      placeholder="공동구매명을 입력하세요"
+                    />
+                  </div>
+                  <button class="btn btn-outline btn-sm wide-btn">
                     검색
                   </button>
                 </div>
                 <div class="empty-state">
                   <p>진행 중인 공동구매가 없습니다</p>
-                  <button class="btn btn-outline btn-sm" @click="goToGroupPurchaseCreate">
-                    공동구매 등록하기
-                  </button>
                 </div>
               </div>
             </div>
@@ -1062,6 +1073,12 @@ const sellerProductCategory = ref('all')
 const sellerGroupPurchaseKeyword = ref('')
 const sellerGroupPurchaseCategory = ref('all')
 
+const sellerSalesStats = ref([
+  { label: '등록된 상품', value: '0', subtext: '최근 30일 등록' },
+  { label: '진행 중 공동구매', value: '0', subtext: '현재 진행 수' },
+  { label: '금일 주문 요청', value: '0', subtext: '실시간 주문 건' }
+])
+
 const sellerInquiries = ref([
   {
     question: '아이폰 색상 변경 가능한가요?',
@@ -1324,10 +1341,6 @@ const goToSellerProducts = () => {
 
 const goToProductRegister = () => {
   router.push('/seller/register/product-register')
-}
-
-const goToGroupPurchaseCreate = () => {
-  router.push('/group-purchases/create')
 }
 
 const goToGroupPurchaseManage = () => {
@@ -2155,6 +2168,77 @@ const saveNotificationSettings = async () => {
   gap: 24px;
 }
 
+.seller-sales-section .seller-sales-hero {
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.seller-sales-hero h3 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  color: #ffffff;
+}
+
+.seller-sales-hero p {
+  margin: 0;
+  color: #c2c2c2;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sales-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sales-stat-card {
+  background: #0f0f0f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.stat-label {
+  margin: 0 0 8px 0;
+  color: #8e8e8e;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-subtext {
+  margin: 6px 0 0 0;
+  color: #a8a8a8;
+  font-size: 13px;
+}
+
+.seller-sales-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .seller-card {
   background: #111111;
   border: 1px solid #2a2a2a;
@@ -2244,6 +2328,7 @@ const saveNotificationSettings = async () => {
 
 .filter-row {
   display: flex;
+  align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -2257,6 +2342,21 @@ const saveNotificationSettings = async () => {
   border: 1px solid #2a2a2a;
   background: #0a0a0a;
   color: #ffffff;
+}
+
+.input-row {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+}
+
+.input-row select,
+.input-row input {
+  flex: 1;
+}
+
+.wide-btn {
+  min-width: 120px;
 }
 
 .card-actions {
