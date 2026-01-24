@@ -44,6 +44,13 @@
                 <span class="nav-icon">⚙️</span>
                 <span>계정 설정</span>
               </button>
+              <button
+                :class="['nav-item', { active: activeMenu === 'notification-settings' }]"
+                @click="activeMenu = 'notification-settings'"
+              >
+                <span class="nav-icon">🔔</span>
+                <span>알림 설정</span>
+              </button>
             </div>
 
             <div class="nav-section">
@@ -268,6 +275,55 @@
                   @click="showDeleteAccountModal = true"
                 >
                   회원 탈퇴
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 알림 설정 -->
+          <section v-if="activeMenu === 'notification-settings'" class="content-section">
+            <h2 class="section-title">알림 설정</h2>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>알림 수신 설정</h3>
+              </div>
+
+              <div v-if="loadingNotificationSettings" class="loading-state">
+                <p>알림 설정을 불러오는 중...</p>
+              </div>
+
+              <div v-else class="notification-settings-list">
+                <div
+                  v-for="setting in notificationSettings"
+                  :key="setting.channel"
+                  class="notification-setting-item"
+                >
+                  <div class="setting-info">
+                    <span class="setting-icon">{{ getNotificationIcon(setting.channel) }}</span>
+                    <div class="setting-details">
+                      <h4 class="setting-title">{{ getNotificationTitle(setting.channel) }}</h4>
+                      <p class="setting-description">{{ getNotificationDescription(setting.channel) }}</p>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input
+                      type="checkbox"
+                      v-model="setting.isEnabled"
+                      @change="handleNotificationToggle(setting)"
+                    />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="notification-save-footer">
+                <button
+                  class="btn btn-primary"
+                  @click="saveNotificationSettings"
+                  :disabled="savingNotificationSettings"
+                >
+                  {{ savingNotificationSettings ? '저장 중...' : '설정 저장' }}
                 </button>
               </div>
             </div>
@@ -770,7 +826,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authAPI } from '@/api/auth'
 import AddressSearch from '@/components/AddressSearch.vue'
-import { groupPurchaseApi, productApi } from '@/api/axios'
+import { groupPurchaseApi, productApi, notificationSettingApi } from '@/api/axios'
 
 const router = useRouter()
 
@@ -784,6 +840,9 @@ watch(activeMenu, (newMenu) => {
   }
   if (newMenu === 'cancelled-orders' && cancelledOrders.value.length === 0) {
     loadCancelledOrders()
+  }
+  if (newMenu === 'notification-settings' && notificationSettings.value.length === 0) {
+    loadNotificationSettings()
   }
 })
 
@@ -818,6 +877,11 @@ const deleteAccountForm = ref({
   password: ''
 })
 const deletingAccount = ref(false)
+
+// 알림 설정
+const notificationSettings = ref([])
+const loadingNotificationSettings = ref(false)
+const savingNotificationSettings = ref(false)
 
 const formatPrice = (value) => {
   const numberValue = Number(value)
@@ -1535,6 +1599,75 @@ const handleDeleteAccount = async () => {
   } finally {
     deletingAccount.value = false
     showDeleteAccountModal.value = false
+  }
+}
+
+// 알림 설정 로드
+const loadNotificationSettings = async () => {
+  loadingNotificationSettings.value = true
+  try {
+    const response = await notificationSettingApi.getSettings()
+
+    if (response.data && response.data.data) {
+      notificationSettings.value = response.data.data
+    }
+  } catch (error) {
+    console.error('알림 설정 로드 실패:', error)
+    alert('알림 설정을 불러오는데 실패했습니다.')
+  } finally {
+    loadingNotificationSettings.value = false
+  }
+}
+
+// 알림 채널별 아이콘
+const getNotificationIcon = (channel) => {
+  const icons = {
+    'EMAIL': '📧',
+    'IN_APP': '🔔'
+  }
+  return icons[channel] || '🔔'
+}
+
+// 알림 채널별 제목
+const getNotificationTitle = (channel) => {
+  const titles = {
+    'EMAIL': '이메일 알림',
+    'IN_APP': '앱 내 알림'
+  }
+  return titles[channel] || channel
+}
+
+// 알림 채널별 설명
+const getNotificationDescription = (channel) => {
+  const descriptions = {
+    'EMAIL': '주문 상태 변경, 공동구매 진행 상황 등을 이메일로 받습니다',
+    'IN_APP': '실시간으로 앱 내에서 알림을 받습니다'
+  }
+  return descriptions[channel] || ''
+}
+
+// 알림 토글 변경 (실시간 반영 아님, 저장 버튼 눌러야 함)
+const handleNotificationToggle = (setting) => {
+  // 단순히 상태만 변경, 실제 저장은 saveNotificationSettings에서
+  console.log('알림 설정 변경:', setting.channel, setting.isEnabled)
+}
+
+// 알림 설정 저장
+const saveNotificationSettings = async () => {
+  savingNotificationSettings.value = true
+  try {
+    const settings = notificationSettings.value.map(setting => ({
+      channel: setting.channel,
+      isEnabled: setting.isEnabled
+    }))
+
+    await notificationSettingApi.updateSettings(settings)
+    alert('알림 설정이 저장되었습니다.')
+  } catch (error) {
+    console.error('알림 설정 저장 실패:', error)
+    alert(error.response?.data?.message || '알림 설정 저장에 실패했습니다.')
+  } finally {
+    savingNotificationSettings.value = false
   }
 }
 
@@ -3106,6 +3239,129 @@ textarea:focus {
   padding-top: 8px;
 }
 
+/* 알림 설정 */
+.notification-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notification-setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.notification-setting-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #3a3a3a;
+}
+
+.setting-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.setting-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.setting-details {
+  flex: 1;
+}
+
+.setting-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.setting-description {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 토글 스위치 */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #3a3a3a;
+  transition: 0.3s;
+  border-radius: 28px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #ffffff;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #4CAF50;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.notification-save-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notification-save-footer .btn {
+  min-width: 120px;
+}
+
 
 @media (max-width: 640px) {
   .address-modal,
@@ -3166,6 +3422,24 @@ textarea:focus {
   .btn-danger {
     width: 100%;
     padding: 13px 24px;
+  }
+
+  .notification-setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .setting-info {
+    width: 100%;
+  }
+
+  .notification-save-footer {
+    justify-content: stretch;
+  }
+
+  .notification-save-footer .btn {
+    width: 100%;
   }
 }
 </style>
