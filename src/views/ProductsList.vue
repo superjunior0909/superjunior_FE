@@ -14,7 +14,7 @@
     </section>
 
     <!-- 맞춤형 추천 -->
-    <section v-if="recommendedProducts.length" class="product-grid-section recommend-section">
+    <section v-if="recommendedLoading || recommendedProducts.length" class="product-grid-section recommend-section">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">
@@ -22,7 +22,23 @@
             <span v-if="recommendedReason" class="section-reason">{{ recommendedReason }}</span>
           </h2>
         </div>
-        <div class="product-grid">
+        <div v-if="recommendedLoading" class="product-grid">
+          <article
+            v-for="n in 3"
+            :key="`skeleton-${n}`"
+            class="product-card skeleton-card"
+          >
+            <div class="image-wrapper skeleton-block"></div>
+            <div class="card-body">
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          </article>
+        </div>
+        <div v-else class="product-grid">
           <article
             v-for="product in recommendedProducts"
             :key="product.id"
@@ -312,6 +328,7 @@ const products = ref([])
 const loading = ref(false)
 const recommendedProducts = ref([])
 const recommendedReason = ref('')
+const recommendedLoading = ref(false)
 
 const keyword = ref('')
 const selectedStatus = ref('OPEN')
@@ -452,6 +469,7 @@ const mapToProductCard = (gp) => {
 }
 
 const fetchRecommendedProducts = async () => {
+  recommendedLoading.value = true
   try {
     const res = await auth.searchAIRecommandPurchases({
       keyword: keyword.value,
@@ -465,6 +483,8 @@ const fetchRecommendedProducts = async () => {
     console.error('추천 상품 조회 실패', e)
     recommendedProducts.value = []
     recommendedReason.value = ''
+  } finally {
+    recommendedLoading.value = false
   }
 }
 
@@ -632,6 +652,38 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   color: #999;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-block {
+  background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 50%, #1f1f1f 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #1f1f1f 0%, #2a2a2a 50%, #1f1f1f 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .recommend-section {
