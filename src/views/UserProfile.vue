@@ -2370,15 +2370,19 @@ const mapHistoryItem = (item, index) => {
 const fetchPaidPointHistories = async () => {
   loadingPaidHistories.value = true
   try {
+    console.log('[PAID] API 호출 파라미터:', { type: 'PAID' })
     const response = await pointApi.getPointHistories({
       page: 0,
       size: 20,
       sort: 'createdAt,desc',
       type: 'PAID'
     })
+    console.log('[PAID] 백엔드 응답:', response)
 
     const list = normalizeHistories(response)
+    console.log('[PAID] 정규화된 리스트:', list)
     paidPointHistories.value = list.map(mapHistoryItem)
+    console.log('[PAID] 최종 데이터 개수:', paidPointHistories.value.length)
   } catch (error) {
     console.error('PAID 포인트 이력 조회 실패:', error)
     paidPointHistories.value = []
@@ -2390,15 +2394,19 @@ const fetchPaidPointHistories = async () => {
 const fetchBonusPointHistories = async () => {
   loadingBonusHistories.value = true
   try {
+    console.log('[BONUS] API 호출 파라미터:', { type: 'BONUS' })
     const response = await pointApi.getPointHistories({
       page: 0,
       size: 20,
       sort: 'createdAt,desc',
       type: 'BONUS'
     })
+    console.log('[BONUS] 백엔드 응답:', response)
 
     const list = normalizeHistories(response)
+    console.log('[BONUS] 정규화된 리스트:', list)
     bonusPointHistories.value = list.map(mapHistoryItem)
+    console.log('[BONUS] 최종 데이터 개수:', bonusPointHistories.value.length)
   } catch (error) {
     console.error('BONUS 포인트 이력 조회 실패:', error)
     bonusPointHistories.value = []
