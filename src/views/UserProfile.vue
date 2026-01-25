@@ -227,23 +227,64 @@
 
             <div class="panel">
               <div class="panel-header">
-                <h3>충전 / 차감 이력</h3>
+                <h3>포인트 이력</h3>
               </div>
-              <div v-if="loadingHistories" class="loading-state">
-                <p>이력을 불러오는 중...</p>
+
+              <!-- 탭 버튼 -->
+              <div class="point-history-tabs">
+                <button
+                  :class="['tab-btn', { active: pointHistoryTab === 'PAID' }]"
+                  @click="pointHistoryTab = 'PAID'"
+                >
+                  충전 포인트
+                </button>
+                <button
+                  :class="['tab-btn', { active: pointHistoryTab === 'BONUS' }]"
+                  @click="pointHistoryTab = 'BONUS'"
+                >
+                  보너스 포인트
+                </button>
               </div>
-              <div v-else-if="pointHistories.length === 0" class="empty-history">
-                <p>이력이 없습니다</p>
-              </div>
-              <div v-else class="history-list">
-                <div v-for="item in pointHistories" :key="item.id" class="history-item">
-                  <div class="history-info">
-                    <span class="history-date">{{ item.date }}</span>
-                    <span class="history-amount" :class="item.type">
-                      {{ item.type === 'credit' ? '+' : '-' }}{{ item.amount.toLocaleString() }}원
-                    </span>
+
+              <!-- PAID 포인트 이력 -->
+              <div v-if="pointHistoryTab === 'PAID'">
+                <div v-if="loadingPaidHistories" class="loading-state">
+                  <p>이력을 불러오는 중...</p>
+                </div>
+                <div v-else-if="paidPointHistories.length === 0" class="empty-history">
+                  <p>이력이 없습니다</p>
+                </div>
+                <div v-else class="history-list">
+                  <div v-for="item in paidPointHistories" :key="item.id" class="history-item">
+                    <div class="history-info">
+                      <span class="history-date">{{ item.date }}</span>
+                      <span class="history-amount" :class="item.type">
+                        {{ item.type === 'credit' ? '+' : '-' }}{{ item.amount.toLocaleString() }}원
+                      </span>
+                    </div>
+                    <span class="history-status" :class="item.type">{{ item.statusText }}</span>
                   </div>
-                  <span class="history-status" :class="item.type">{{ item.statusText }}</span>
+                </div>
+              </div>
+
+              <!-- BONUS 포인트 이력 -->
+              <div v-if="pointHistoryTab === 'BONUS'">
+                <div v-if="loadingBonusHistories" class="loading-state">
+                  <p>이력을 불러오는 중...</p>
+                </div>
+                <div v-else-if="bonusPointHistories.length === 0" class="empty-history">
+                  <p>이력이 없습니다</p>
+                </div>
+                <div v-else class="history-list">
+                  <div v-for="item in bonusPointHistories" :key="item.id" class="history-item">
+                    <div class="history-info">
+                      <span class="history-date">{{ item.date }}</span>
+                      <span class="history-amount" :class="item.type">
+                        {{ item.type === 'credit' ? '+' : '-' }}{{ item.amount.toLocaleString() }}원
+                      </span>
+                    </div>
+                    <span class="history-status" :class="item.type">{{ item.statusText }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1754,8 +1795,11 @@ watch(activeMenu, (newMenu) => {
   // ✅ 포인트 메뉴 진입 시 포인트 잔액/이력 로드
   if (newMenu === 'point') {
     fetchPointBalance()
-    if (pointHistories.value.length === 0) {
-      fetchPointHistories()
+    if (paidPointHistories.value.length === 0) {
+      fetchPaidPointHistories()
+    }
+    if (bonusPointHistories.value.length === 0) {
+      fetchBonusPointHistories()
     }
   }
 })
@@ -1780,8 +1824,11 @@ const userInfo = ref({
 const chargeAmount = ref(10000)
 const showPointChargeModal = ref(false)
 const chargingPoint = ref(false)
-const pointHistories = ref([])
-const loadingHistories = ref(false)
+const pointHistoryTab = ref('PAID') // 'PAID' 또는 'BONUS'
+const paidPointHistories = ref([])
+const bonusPointHistories = ref([])
+const loadingPaidHistories = ref(false)
+const loadingBonusHistories = ref(false)
 
 // 프로필 수정 모드
 const isEditingProfile = ref(false)
@@ -1859,7 +1906,8 @@ const requestPointCharge = async () => {
     })
     alert('포인트 충전이 완료되었습니다.')
     await fetchPointBalance()
-    await fetchPointHistories()
+    await fetchPaidPointHistories()
+    await fetchBonusPointHistories()
     closeChargeModal()
   } catch (error) {
     console.error('포인트 충전 실패:', error)
@@ -2319,22 +2367,43 @@ const mapHistoryItem = (item, index) => {
   }
 }
 
-const fetchPointHistories = async () => {
-  loadingHistories.value = true
+const fetchPaidPointHistories = async () => {
+  loadingPaidHistories.value = true
   try {
     const response = await pointApi.getPointHistories({
       page: 0,
       size: 20,
-      sort: 'createdAt,desc'
+      sort: 'createdAt,desc',
+      type: 'PAID'
     })
 
     const list = normalizeHistories(response)
-    pointHistories.value = list.map(mapHistoryItem)
+    paidPointHistories.value = list.map(mapHistoryItem)
   } catch (error) {
-    console.error('포인트 이력 조회 실패:', error)
-    pointHistories.value = []
+    console.error('PAID 포인트 이력 조회 실패:', error)
+    paidPointHistories.value = []
   } finally {
-    loadingHistories.value = false
+    loadingPaidHistories.value = false
+  }
+}
+
+const fetchBonusPointHistories = async () => {
+  loadingBonusHistories.value = true
+  try {
+    const response = await pointApi.getPointHistories({
+      page: 0,
+      size: 20,
+      sort: 'createdAt,desc',
+      type: 'BONUS'
+    })
+
+    const list = normalizeHistories(response)
+    bonusPointHistories.value = list.map(mapHistoryItem)
+  } catch (error) {
+    console.error('BONUS 포인트 이력 조회 실패:', error)
+    bonusPointHistories.value = []
+  } finally {
+    loadingBonusHistories.value = false
   }
 }
 
@@ -3587,6 +3656,37 @@ const saveNotificationSettings = async () => {
   font-size: 14px;
   color: #999;
   margin: 0 0 24px 0;
+}
+
+.point-history-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.point-history-tabs .tab-btn {
+  flex: 1;
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #999;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.point-history-tabs .tab-btn:hover {
+  background: #1a1a1a;
+  border-color: #3a3a3a;
+}
+
+.point-history-tabs .tab-btn.active {
+  background: #ffffff;
+  color: #0a0a0a;
+  border-color: #ffffff;
 }
 
 .history-list {
