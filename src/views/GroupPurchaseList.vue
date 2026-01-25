@@ -407,6 +407,11 @@ const formatCurrency = (value) => {
 }
 
 const isOwner = (gp) => {
+  // 내 공동구매 목록을 보는 경우(sellerId 쿼리가 없는 경우)는 모두 내 것
+  if (!route.query.sellerId) {
+    return true
+  }
+
   const memberId = localStorage.getItem('member_id')
   const userEmail = localStorage.getItem('user_email')
 
@@ -414,7 +419,8 @@ const isOwner = (gp) => {
     'gp.sellerId': gp.sellerId,
     'currentSellerId': currentSellerId.value,
     'member_id': memberId,
-    'user_email': userEmail
+    'user_email': userEmail,
+    'route.query.sellerId': route.query.sellerId
   })
 
   // sellerId가 member_id, user_email 중 하나와 일치하면 소유자로 판단
