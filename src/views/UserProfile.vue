@@ -38,6 +38,13 @@
                 <span>포인트</span>
               </button>
               <button
+                :class="['nav-item', { active: activeMenu === 'payments' }]"
+                @click="activeMenu = 'payments'"
+              >
+                <span class="nav-icon">💳</span>
+                <span>결제 내역</span>
+              </button>
+              <button
                 :class="['nav-item', { active: activeMenu === 'account-settings' }]"
                 @click="activeMenu = 'account-settings'"
               >
@@ -292,11 +299,15 @@
                 </div>
               </div>
             </div>
+          </section>
 
-            <!-- 결제 내역 -->
+          <!-- 결제 내역 -->
+          <section v-if="activeMenu === 'payments'" class="content-section">
+            <h2 class="section-title">결제 내역</h2>
+
             <div class="panel">
               <div class="panel-header">
-                <h3>결제 내역</h3>
+                <h3>PG 결제 내역</h3>
               </div>
               <div v-if="loadingPgPayments" class="loading-state">
                 <p>결제 내역을 불러오는 중...</p>
@@ -1464,6 +1475,7 @@ const syncActiveMenuFromRoute = () => {
     'profile',
     'address',
     'point',
+    'payments',
     'account-settings',
     'notification-settings',
     'orders',
@@ -1919,6 +1931,10 @@ watch(activeMenu, (newMenu) => {
     if (bonusPointHistories.value.length === 0) {
       fetchBonusPointHistories()
     }
+  }
+
+  // ✅ 결제 내역 메뉴 진입 시 PG 결제 내역 로드
+  if (newMenu === 'payments') {
     if (!pgPaymentsLoaded.value) {
       fetchPgPaymentHistories()
     }
