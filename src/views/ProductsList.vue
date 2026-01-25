@@ -470,7 +470,7 @@ const mapToProductCard = (gp) => {
   return {
     id: gp.groupPurchaseId,
     title: gp.title,
-    subtitle: gp.description || '',
+    subtitle: '',
     category: p.category || '기타',
     image,
     originalPrice,
