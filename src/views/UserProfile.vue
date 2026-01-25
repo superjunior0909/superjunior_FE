@@ -88,6 +88,13 @@
                 <span>판매 목록</span>
               </button>
               <button
+                :class="['nav-item', { active: activeMenu === 'seller-orders' }]"
+                @click="openSellerMenu('seller-orders')"
+              >
+                <span class="nav-icon">📦</span>
+                <span>주문 현황</span>
+              </button>
+              <button
                 :class="['nav-item', { active: activeMenu === 'seller-settlement' }]"
                 @click="openSellerMenu('seller-settlement')"
               >
@@ -647,7 +654,6 @@
             class="content-section seller-center"
           >
             <h2 class="section-title">판매자 센터</h2>
-
             <div class="seller-center-grid">
               <div class="seller-card seller-info-card">
                 <div class="card-header">
@@ -754,21 +760,6 @@
                     <dd>{{ sellerAccountInfo.email || '-' }}</dd>
                   </div>
                 </dl>
-              </div>
-
-              <div class="seller-card order-card">
-                <div class="card-header">
-                  <div>
-                    <p class="card-subtitle">주문 목록</p>
-                    <h3>실시간 주문 현황</h3>
-                  </div>
-                  <button class="link-button">
-                    새로고침
-                  </button>
-                </div>
-                <div class="empty-state-lg">
-                  <p>주문 내역이 없습니다</p>
-                </div>
               </div>
 
               <div class="seller-card inquiry-card">
@@ -937,6 +928,27 @@
                       외 {{ sellerGroupPurchasesAll.length - sellerGroupPurchasesPreview.length }}건이 더 있습니다.
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 주문 현황 -->
+          <section
+            v-if="isSeller && activeMenu === 'seller-orders'"
+            class="content-section seller-center"
+          >
+            <h2 class="section-title">주문 현황</h2>
+            <div class="seller-center-grid">
+              <div class="seller-card order-card order-summary-card">
+                <div class="card-header">
+                  <div>
+                    <p class="card-subtitle">주문 목록</p>
+                    <h3>실시간 주문 현황</h3>
+                  </div>
+                </div>
+                <div class="empty-state-lg">
+                  <p>주문 내역이 없습니다</p>
                 </div>
               </div>
             </div>
@@ -2859,6 +2871,14 @@ const saveNotificationSettings = async () => {
   gap: 24px;
 }
 
+.seller-sales-grid.top-stats {
+  margin-bottom: 24px;
+}
+
+.seller-card.order-card.compact {
+  max-width: 420px;
+}
+
 .seller-edit-form form {
   display: flex;
   flex-direction: column;
@@ -3051,6 +3071,9 @@ const saveNotificationSettings = async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.order-summary-card {
+  grid-column: 1 / -1;
 }
 
 .card-header {
