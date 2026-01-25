@@ -1630,12 +1630,9 @@ const loadSellerOrdersSummary = async () => {
       price: order.price,
       totalAmount: order.totalAmount,
       createdAt: order.createdAt,
-      groupPurchaseId: order.groupPurchaseId || order.groupPurchase?.groupPurchaseId || order.purchaseId,
-      groupPurchaseName: order.groupPurchaseName || order.groupPurchase?.title || order.title,
-      buyerName: order.customerName || order.buyerName || order.name || '고객',
-      email: order.email || order.buyerEmail || '',
-      phoneNumber: order.phoneNumber || '',
-      address: order.address || ''
+      groupPurchaseId: order.groupPurchaseId,
+      groupPurchaseName: order.groupPurchaseName || '공동구매',
+      buyerName: '구매자'
     }))
   } catch (error) {
     console.error('판매자 주문 정보 로드 실패:', error)
