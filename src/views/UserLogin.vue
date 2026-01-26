@@ -338,8 +338,8 @@ const handleLogin = async () => {
   justify-content: center;
   gap: 12px;
   background: #ffffff;
-  border: 2px solid #e0e0e0;
-  color: #3c4043;
+  border: none;
+  color: #0a0a0a;
   font-weight: 600;
   transition: all 0.2s;
 }
@@ -349,9 +349,9 @@ const handleLogin = async () => {
 }
 
 .btn-google:hover {
-  background: #f8f9fa;
-  border-color: #d0d0d0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+  background: #f0f0f0;
 }
 
 .signup-link {
